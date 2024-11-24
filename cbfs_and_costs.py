@@ -13,6 +13,7 @@ class CBF:
         self.P = np.diag([1.0, 1.0])
         self.c = np.zeros((2, 1))
         self.c[0 , 0] = 1.125
+        self.shift = np.array([[1.0], [0.0]])
         # self.P = np.diag([1.31, 4.00])
         # self.c = np.zeros((2, 1))
         # self.c[0 , 0] = 1.125
@@ -23,17 +24,33 @@ class CBF:
         """
         assert state_x.shape == (2, )
         state_x_m = state_x[:, np.newaxis]
-        return self.beta - (state_x_m - self.c).T @ self.P @ (state_x_m - self.c)
+        h1 = self.beta - (state_x_m - self.c).T @ self.P @ (state_x_m - self.c)
+        h2 = self.beta - (state_x_m - (self.c + self.shift)).T @ self.P @ (state_x_m - (self.c + self.shift))
+        return np.maximum(h1, h2)
+
+    def eval_idx(self, state_x):
+        """ 
+        Evaluate CBF from one dimensional state array.
+        """
+        assert state_x.shape == (2, )
+        state_x_m = state_x[:, np.newaxis]
+        h1 = self.beta - (state_x_m - self.c).T @ self.P @ (state_x_m - self.c)
+        h2 = self.beta - (state_x_m - (self.c + self.shift)).T @ self.P @ (state_x_m - (self.c + self.shift))
+        return int(h1>=h2)
 
     def dhdx(self, state_x):
         """
         Return CBF derivative.
         """
         assert state_x.shape == (2, )
+        idx = self.eval_idx(state_x)
         state_x_m = state_x.ravel() 
         state_x_m = state_x_m[:, np.newaxis]
-        return -2*(state_x_m - self.c).T @ self.P
-    
+        if idx==0:
+            return -2*(state_x_m - self.c).T @ self.P
+        else:
+            return -2*(state_x_m - self.c - self.shift).T @ self.P
+
     def dhdx2(self, state_x):
         """
         Return CBF second derivative

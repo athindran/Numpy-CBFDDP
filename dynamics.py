@@ -52,4 +52,4 @@ class LinearSys(gym.Env):
         """
         Reset to initial state.
         """
-        self.state_x = np.array([[1.0, 0.0]])
+        self.state_x = np.array([[2.0, 0.0]])

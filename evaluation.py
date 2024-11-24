@@ -2,6 +2,7 @@ import sys
 sys.path.append(".")
 import matplotlib.pyplot as plt
 from matplotlib import cm
+from matplotlib.patches import Ellipse
 import numpy as np
 import copy
 
@@ -90,7 +91,7 @@ for idx in range(T):
 ddpcbf_runtime = idx
 
 ftsize=8
-fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(9, 3))
+fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(14, 3))
 #plt.plot(np.arange(0, T)*linear_sys.dt, unconstrained_cbf_states, label='Unfiltered')
 axes[0].plot(np.arange(0, constrained_runtime)*linear_sys.dt, constrained_cbf_states[0:constrained_runtime], label='HCBF-Filtered')
 axes[0].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_cbf_states[0:ddpcbf_runtime], label='DDP-CBF Filtered')
@@ -120,6 +121,18 @@ axes[1].set_yticks(ticks=yticks, labels=yticks)
 axes[1].tick_params(labelsize=ftsize)
 axes[1].grid()
 
+axes[2].plot(constrained_simulation_states[0, :], constrained_simulation_states[1, :], label='HCBF-Filtered')
+axes[2].plot(ddpcbf_simulation_states[0, :], ddpcbf_simulation_states[1, :], label='CBFDDP-Filtered')
+ellipse = Ellipse(xy=cbf.c, width=2*cbf.beta, height=2*cbf.beta, 
+                        edgecolor='g', fc='None', lw=2)
+axes[2].add_patch(ellipse)
+ellipse_pair = Ellipse(xy=cbf.c + cbf.shift, width=2*cbf.beta, height=2*cbf.beta, 
+                        edgecolor='g', fc='None', lw=2)
+axes[2].add_patch(ellipse_pair)
+axes[2].set_xlabel('X axis', fontsize=ftsize)
+axes[2].set_ylabel('Y axis', fontsize=ftsize)
+axes[2].grid()
+
 # axes[1, 0].plot(np.arange(0, constrained_runtime)*linear_sys.dt, constrained_lie_f[0:constrained_runtime], label='Filtered')
 # axes[1, 0].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_lie_f[0:ddpcbf_runtime], label='CBFDDP-Filtered')
 # axes[1, 0].set_xlabel('Time (s)', fontsize=ftsize)
@@ -140,4 +153,4 @@ axes[1].grid()
 # #axes[1, 1].set_ylim([-1.0, 1.0])
 # axes[1, 1].grid()
 
-plt.savefig('./linear_sys/cbf_filtering.png', bbox_inches="tight")
+plt.savefig('./linear_sys/cbf_filtering_min.png', bbox_inches="tight")
