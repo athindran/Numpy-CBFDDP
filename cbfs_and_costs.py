@@ -68,3 +68,80 @@ class CBF:
             return np.array(u_perf), lie_f_coeff, lie_g_coeff
         else:
             return np.array([-lie_f_coeff[0]/(lie_g_coeff[0] + 1e-6)]), lie_f_coeff, lie_g_coeff
+
+class MultiCBF(CBF):
+    """
+    Control Barrier Function
+    """
+    def __init__(self, kappa, use_smooth_max=False):
+        """
+        Initialize CBF parameters.
+        """
+        super().__init__()
+        self.shift = np.array([[-1.0], [0.0]])
+        self.gamma = 1.0
+        self.kappa = kappa
+        self.use_smooth_max = use_smooth_max
+
+    def eval(self, state_x):
+        """ 
+        Evaluate CBF from one dimensional state array.
+        """
+        assert state_x.shape == (2, )
+        state_x_m = state_x[:, np.newaxis]
+        h1 = self.beta - (state_x_m - self.c).T @ self.P @ (state_x_m - self.c)
+        h2 = self.beta - (state_x_m - (self.c + self.shift)).T @ self.P @ (state_x_m - (self.c + self.shift))
+
+        if self.use_smooth_max:
+            hsm = np.log(np.exp(kappa*h1) + np.exp(kappa*h2))/kappa
+        else:
+            return np.maximum(h1, h2)
+
+    def eval_idx(self, state_x):
+        """ 
+        Evaluate CBF from one dimensional state array.
+        """
+        assert state_x.shape == (2, )
+        state_x_m = state_x[:, np.newaxis]
+        h1 = self.beta - (state_x_m - self.c).T @ self.P @ (state_x_m - self.c)
+        h2 = self.beta - (state_x_m - (self.c + self.shift)).T @ self.P @ (state_x_m - (self.c + self.shift))
+        return int(h1>=h2)
+
+    def dhdx(self, state_x):
+        """
+        Return CBF derivative.
+        """
+        assert state_x.shape == (2, )
+        dh1dx = -2*(state_x_m - self.c).T @ self.P
+        dh2dx = -2*(state_x_m - self.c - self.shift).T @ self.P
+        if self.use_smooth_max:
+            h1 = self.beta - (state_x_m - self.c).T @ self.P @ (state_x_m - self.c)
+            h2 = self.beta - (state_x_m - (self.c + self.shift)).T @ self.P @ (state_x_m - (self.c + self.shift))
+            hsm = np.log(np.exp(kappa*h1) + np.exp(kappa*h2))/kappa
+
+            dhsmoothdh1 = np.exp(kappa*h1) / (np.exp(kappa*h1) + np.exp(kappa*h2))
+            dhsmoothdx = dhsmoothdh1 * dh1dx 
+            dhsmoothdh2 = np.exp(kappa*h2) / (np.exp(kappa*h1) + np.exp(kappa*h2))
+            dhsmoothdx += dhsmoothdh2 * dh2dx
+
+            return dhsmoothdx
+
+        idx = self.eval_idx(state_x)
+        state_x_m = state_x.ravel() 
+        state_x_m = state_x_m[:, np.newaxis]
+    
+        if idx==0:
+            return dh1dx
+        else:
+            return dh2dx
+
+    def dhdx2(self, state_x):
+        """
+        Return CBF second derivative
+        """
+        if self.use_smooth_max:
+            dh1dx = -2*(state_x_m - self.c).T @ self.P
+            dh2dx = -2*(state_x_m - self.c - self.shift).T @ self.P
+            d2hsmoothdh1dx = Ka * dhsmoothd1 * dh1dx - kappa * dhsmoothd1 * dh1dx / ()
+
+        return -2*self.P
