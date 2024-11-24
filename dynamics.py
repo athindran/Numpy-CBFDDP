@@ -15,9 +15,9 @@ class LinearSys(gym.Env):
         super(LinearSys, self).__init__()
         self.state_dim = 2
         self.action_dim = 1
-        self.A = np.array([[0.0, 1.0], [-0.09, 0.1]])
-        self.B = np.array([[0.0],[18.09]])
-        self.dt = 0.001
+        self.A = np.array([[0.0, 1.0], [0.0, 0.0]])
+        self.B = np.array([[0.0],[1.0]])
+        self.dt = 0.01
 
     def step(self, obs, action=np.zeros((1, ))):
         """
@@ -26,6 +26,7 @@ class LinearSys(gym.Env):
         Function additionally integrates internal state.
         """
         assert action.shape[0]==self.action_dim
+        action = np.clip(action, a_min=-2.0, a_max=2.0)
         # ODE solver
         ode_out = solve_ivp(fun=self.deriv_vec, y0=obs.ravel(), args=(action[np.newaxis, :]), t_span=(0, self.dt))
         new_obs = ode_out.y[:, -1]
@@ -51,4 +52,4 @@ class LinearSys(gym.Env):
         """
         Reset to initial state.
         """
-        self.state_x = np.array([[0.5, -0.1]])
+        self.state_x = np.array([[1.0, 0.0]])

@@ -292,14 +292,14 @@ class DDPLRFilter:
         return filtered_control, solver_dict_plan_1["reachable_margin"]
     
 class DDPCBFFilter:
-    def __init__(self, state_dim: int, action_dim: int, marginFunc: CBF, env: gym.Env, horizon = 50, Rc=1e-5):
+    def __init__(self, state_dim: int, action_dim: int, marginFunc: CBF, env: gym.Env, horizon = 40, Rc=1e-5):
         self.rollout_policy_1 =  ReachabilityLQPolicy(state_dim=state_dim, action_dim=action_dim, marginFunc=marginFunc, 
                                                       env=copy.deepcopy(env), horizon=horizon, Rc=Rc)
         self.rollout_policy_2 =  ReachabilityLQPolicy(state_dim=state_dim, action_dim=action_dim, marginFunc=marginFunc, 
                                                       env=copy.deepcopy(env), horizon=horizon, Rc=Rc)
         self.reinit_controls = np.zeros((horizon, action_dim))
         #self.reinit_controls[:, 0] = 1.0
-        self.gamma = 0.994
+        self.gamma = 0.97
 
     def apply_filter(self, state_x, u_perf, linear_sys):
         dyn_copy = copy.deepcopy(linear_sys)
@@ -333,7 +333,7 @@ class DDPCBFFilter:
             control_cbf = control_cbf + control_correction
             control_cbf_new = control_cbf + control_correction
             control_cbf_new = control_cbf_new.ravel()
-            control_cbf_new = np.clip(control_cbf_new, -1.0, 1.0)
+            control_cbf_new = np.clip(control_cbf_new, -2.0, 2.0)
             # Testing barrier quality
             imag_state_x, control_cbf_new = dyn_copy.step( state_x, control_cbf_new )
             _, solver_dict_plan_3, constraints_data_plan_3 = self.rollout_policy_2.get_action( np.array( imag_state_x ) , 
@@ -355,4 +355,4 @@ class DDPCBFFilter:
         #if solver_dict_plan_2["reachable_margin"]<=0.0:
         #    return control_safe_1.ravel(),solver_dict_plan_1["reachable_margin"], constraint_violation, p.copy()
         #else:
-        return control_cbf.ravel(), solver_dict_plan_1["reachable_margin"], constraint_violation, p.copy()
+        return control_cbf.ravel(), solver_dict_plan_1["reachable_margin"], constraint_violation, p.copy(), barrier_entries
