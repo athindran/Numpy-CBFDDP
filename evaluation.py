@@ -98,22 +98,40 @@ constrained_cbf_states = constrained_dict['cbf_states']
 constrained_runtime = constrained_dict['runtime']
 constrained_controls = constrained_dict['controls']
 
-axes[0].plot(np.arange(0, constrained_runtime)*linear_sys.dt, constrained_cbf_states[0:constrained_runtime], label='HCBF-Filtered')
-axes[1].plot(np.arange(0, constrained_runtime)*linear_sys.dt, constrained_controls[0:constrained_runtime], label='HCBF-Filtered')
-axes[2].plot(constrained_simulation_states[0, :], constrained_simulation_states[1, :], label='HCBF-Filtered')
+axes[0].plot(np.arange(0, constrained_runtime)*linear_sys.dt, constrained_cbf_states[0:constrained_runtime], label='HCBF-Filtered', color='k')
+axes[1].plot(np.arange(0, constrained_runtime)*linear_sys.dt, constrained_controls[0:constrained_runtime], label='HCBF-Filtered', color='k')
+axes[2].plot(constrained_simulation_states[0, :], constrained_simulation_states[1, :], label='HCBF-Filtered', color='k')
 
 
-ddpcbf_dict = run_simulation(linear_sys, cbf, method='ddpcbf', Rc=1e-2, horizon=5, gamma=0.97)
+ddpcbf_dict = run_simulation(linear_sys, cbf, method='ddpcbf', Rc=5e-2, horizon=15, gamma=0.97)
 ddpcbf_simulation_states = ddpcbf_dict['simulation_states']
 ddpcbf_cbf_states = ddpcbf_dict['cbf_states']
 ddpcbf_runtime = ddpcbf_dict['runtime']
 ddpcbf_controls = ddpcbf_dict['controls']
 ddpcbf_solver_types = ddpcbf_dict['solver_types']
 
-axes[0].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_cbf_states[0:ddpcbf_runtime], label='DDP-CBF Filtered')
-axes[1].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_controls[0:ddpcbf_runtime], label='CBFDDP-Filtered')
-axes[1].fill_between(np.arange(0, ddpcbf_runtime)*linear_sys.dt, -1.0, 1.0, where=(ddpcbf_solver_types>0), color='b', alpha=0.2)
-axes[2].plot(ddpcbf_simulation_states[0, :], ddpcbf_simulation_states[1, :], label='CBFDDP-Filtered')
+axes[0].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_cbf_states[0:ddpcbf_runtime], label='CBFDDP-HM', color='r')
+axes[1].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_controls[0:ddpcbf_runtime], label='CBFDDP-HM', color='r')
+#axes[1].fill_between(np.arange(0, ddpcbf_runtime)*linear_sys.dt, -1.0, 1.0, where=(ddpcbf_solver_types>0), color='r', alpha=0.2)
+axes[2].plot(ddpcbf_simulation_states[0, :], ddpcbf_simulation_states[1, :], label='CBFDDP-HM', color='r')
+
+cbf.use_smooth_max = True
+alphas = [1.0, 0.5, 0.3, 0.1]
+for kiter, kappa in enumerate([2.0, 2.5, 1.5, 3.5]):
+    cbf.kappa = kappa
+    ddpcbf_smooth_dict = run_simulation(linear_sys, cbf, method='ddpcbf', Rc=5e-2, horizon=15, gamma=0.97)
+    ddpcbf_smooth_simulation_states = ddpcbf_smooth_dict['simulation_states']
+    ddpcbf_smooth_cbf_states = ddpcbf_smooth_dict['cbf_states']
+    ddpcbf_smooth_runtime = ddpcbf_smooth_dict['runtime']
+    ddpcbf_smooth_controls = ddpcbf_smooth_dict['controls']
+    ddpcbf_smooth_solver_types = ddpcbf_smooth_dict['solver_types']
+
+    label_tag = f'CBFDDP-SM $\kappa=${kappa}'
+    axes[0].plot(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, ddpcbf_smooth_cbf_states[0:ddpcbf_smooth_runtime], label=label_tag, color='b', alpha=alphas[kiter])
+    axes[1].plot(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, ddpcbf_smooth_controls[0:ddpcbf_smooth_runtime], label=label_tag, color='b', alpha=alphas[kiter])
+    if kappa==2.0:
+        axes[1].fill_between(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, -1.0, 1.0, where=(ddpcbf_smooth_solver_types>0), color='b', alpha=0.1)
+    axes[2].plot(ddpcbf_smooth_simulation_states[0, :], ddpcbf_smooth_simulation_states[1, :], label=label_tag)
 
 #axes[0].plot(np.arange(0, T)*linear_sys.dt, unconstrained_cbf_states, label='Unfiltered')
 axes[0].set_xlabel('Time (s)', fontsize=ftsize)
