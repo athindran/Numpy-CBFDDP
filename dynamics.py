@@ -45,4 +45,5 @@ class LinearSys(gym.Env):
         """
         Reset to initial state.
         """
+        #return np.array([[0.0, 1.4]])
         return np.array([[1.0, 0.0]])

@@ -6,7 +6,7 @@ from matplotlib.patches import Ellipse
 import numpy as np
 import copy
 
-from cbfs_and_costs import MultiCBF
+from cbfs_and_costs import MultiCBF, MultiCBF_b
 from policies import ReachabilityLQPolicy, DDPCBFFilter
 from dynamics import LinearSys
 
@@ -16,8 +16,8 @@ linear_sys.reset()
 cbf_type = 'A'
 if cbf_type == 'A':
     cbf = MultiCBF()
-# elif cbf_type == 'B':
-#     cbf = CBF_b()
+#elif cbf_type == 'B':
+#     cbf = MultiCBF_b()
 # elif cbf_type == 'C':
 #     cbf = CBF_c()
 else:
@@ -25,6 +25,7 @@ else:
 
 T = 550
 
+cbf_a_params = {'kappa':1.0, 'gamma':0.97, 'Rc':5e-2, 'horizon':15}
 def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=None):
     obs = linear_sys.reset()
     action_perf = np.array([-1.0])
@@ -102,11 +103,11 @@ axes[0].plot(np.arange(0, constrained_runtime)*linear_sys.dt, constrained_cbf_st
 axes[1].plot(np.arange(0, constrained_runtime)*linear_sys.dt, constrained_controls[0:constrained_runtime], label='HCBF-Filtered', color='k')
 axes[2].plot(constrained_simulation_states[0, :], constrained_simulation_states[1, :], label='HCBF-Filtered', color='k')
 
-cbf.use_smooth_max = True
+cbf.use_smoothening = True
 alphas = [1.0, 0.5, 0.3, 0.1]
 for kiter, kappa in enumerate([3.5, 2.5, 2.0, 1.5]):
     cbf.kappa = kappa
-    ddpcbf_smooth_dict = run_simulation(linear_sys, cbf, method='ddpcbf', Rc=5e-2, horizon=15, gamma=0.97)
+    ddpcbf_smooth_dict = run_simulation(linear_sys, cbf, method='ddpcbf', Rc=cbf_a_params['Rc'], horizon=cbf_a_params['horizon'], gamma=cbf_a_params['gamma'])
     ddpcbf_smooth_simulation_states = ddpcbf_smooth_dict['simulation_states']
     ddpcbf_smooth_cbf_states = ddpcbf_smooth_dict['cbf_states']
     ddpcbf_smooth_runtime = ddpcbf_smooth_dict['runtime']
@@ -120,8 +121,8 @@ for kiter, kappa in enumerate([3.5, 2.5, 2.0, 1.5]):
         axes[1].fill_between(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, -1.0, 1.0, where=(ddpcbf_smooth_solver_types>0), color='b', alpha=0.1)
     axes[2].plot(ddpcbf_smooth_simulation_states[0, :], ddpcbf_smooth_simulation_states[1, :], label=label_tag, color='b', alpha=alphas[kiter])
 
-cbf.use_smooth_max = False
-ddpcbf_dict = run_simulation(linear_sys, cbf, method='ddpcbf', Rc=5e-2, horizon=15, gamma=0.97)
+cbf.use_smoothening = False
+ddpcbf_dict = run_simulation(linear_sys, cbf, method='ddpcbf', Rc=cbf_a_params['Rc'], horizon=cbf_a_params['horizon'], gamma=cbf_a_params['gamma'])
 ddpcbf_simulation_states = ddpcbf_dict['simulation_states']
 ddpcbf_cbf_states = ddpcbf_dict['cbf_states']
 ddpcbf_runtime = ddpcbf_dict['runtime']
