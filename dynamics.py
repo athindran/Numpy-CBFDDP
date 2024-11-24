@@ -30,17 +30,10 @@ class LinearSys(gym.Env):
         # ODE solver
         ode_out = solve_ivp(fun=self.deriv_vec, y0=obs.ravel(), args=(action[np.newaxis, :]), t_span=(0, self.dt))
         new_obs = ode_out.y[:, -1]
-        self.state_x = np.array(new_obs)
         return new_obs, action
     
     def get_jacobian(self, obs, action):
         return np.eye(self.state_dim)+self.dt*self.A, self.dt*self.B, self.A, self.B
-    
-    def get_obs(self):
-        """
-        Return internal state.
-        """
-        return self.state_x
     
     def deriv_vec(self, t, state_x, u):
         """
@@ -52,4 +45,4 @@ class LinearSys(gym.Env):
         """
         Reset to initial state.
         """
-        self.state_x = np.array([[1.0, 0.0]])
+        return np.array([[1.0, 0.0]])

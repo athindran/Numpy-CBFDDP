@@ -25,8 +25,8 @@ else:
 
 T = 550
 
-def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=None):
-    obs = linear_sys.reset()
+def run_simulation(linear_sys, cbf, method=None, R=None, horizon=None, gamma=None):
+    linear_sys.reset()
     action_perf = np.array([-1.0])
 
     simulation_states = np.zeros((2, T))
@@ -38,8 +38,9 @@ def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=No
 
     if method == 'ddpcbf':
         ddpcbf = DDPCBFFilter(2, 1, copy.deepcopy(cbf), copy.deepcopy(linear_sys), 
-                                horizon=horizon, Rc=Rc, gamma=gamma)
+                                horizon=horizon, Rc=R)
 
+    obs = linear_sys.get_obs()
     for idx in range(T):
         if method == 'unfilter':
             action_filtered = action_perf
@@ -54,7 +55,7 @@ def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=No
             lie_g_vals[idx] = lie_g.ravel()[0]
 
         new_obs, action = linear_sys.step(obs, action=action_filtered)
-        obs = np.array(new_obs)
+        obs = linear_sys.get_obs()
 
         cbf_eval = cbf.eval(new_obs)
 
@@ -63,8 +64,8 @@ def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=No
         controls[idx] = action_filtered.copy().ravel()[0]
 
         print(f"Step: {idx}, Obs: {new_obs}, Action: {action}, CBF eval: {cbf_eval}")
-        # if(cbf_eval<1e-2):
-        #     action_perf = np.array([0.1])
+        #if(cbf_eval<1e-2):
+        #    action_perf = np.array([0.1])
 
     #cbf_states[idx+1:] = cbf_states[idx]
     #simulation_states[:, idx+1:] = np.repeat(simulation_states[:, idx:idx+1], T - idx - 1, axis=1)
@@ -93,7 +94,7 @@ constrained_cbf_states = constrained_dict['cbf_states']
 constrained_runtime = constrained_dict['runtime']
 constrained_controls = constrained_dict['controls']
 
-ddpcbf_dict = run_simulation(linear_sys, cbf, method='ddpcbf', Rc=1e-2, horizon=5, gamma=0.97)
+ddpcbf_dict = run_simulation(linear_sys, cbf, method='ddpcbf', R=1e-2, horizon=5, gamma=0.99)
 ddpcbf_simulation_states = ddpcbf_dict['simulation_states']
 ddpcbf_cbf_states = ddpcbf_dict['cbf_states']
 ddpcbf_runtime = ddpcbf_dict['runtime']
@@ -163,4 +164,4 @@ axes[2].grid()
 # #axes[1, 1].set_ylim([-1.0, 1.0])
 # axes[1, 1].grid()
 
-plt.savefig(f'./linear_sys/cbf_{cbf_type}_filtering_initial.png', bbox_inches="tight")
+plt.savefig(f'./linear_sys/cbf_{cbf_type}_filtering_sm_max.png', bbox_inches="tight")

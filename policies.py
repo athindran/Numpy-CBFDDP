@@ -292,14 +292,14 @@ class DDPLRFilter:
         return filtered_control, solver_dict_plan_1["reachable_margin"]
     
 class DDPCBFFilter:
-    def __init__(self, state_dim: int, action_dim: int, marginFunc: CBF, env: gym.Env, horizon = 40, Rc=1e-5):
+    def __init__(self, state_dim: int, action_dim: int, marginFunc: CBF, env: gym.Env, horizon: int, Rc: float, gamma: float):
         self.rollout_policy_1 =  ReachabilityLQPolicy(state_dim=state_dim, action_dim=action_dim, marginFunc=marginFunc, 
                                                       env=copy.deepcopy(env), horizon=horizon, Rc=Rc)
         self.rollout_policy_2 =  ReachabilityLQPolicy(state_dim=state_dim, action_dim=action_dim, marginFunc=marginFunc, 
                                                       env=copy.deepcopy(env), horizon=horizon, Rc=Rc)
         self.reinit_controls = np.zeros((horizon, action_dim))
         #self.reinit_controls[:, 0] = 1.0
-        self.gamma = 0.97
+        self.gamma = gamma
 
     def apply_filter(self, state_x, u_perf, linear_sys):
         dyn_copy = copy.deepcopy(linear_sys)
