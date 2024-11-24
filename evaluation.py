@@ -83,8 +83,8 @@ def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=No
 
     return output_dict
 
-ftsize=8
-fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(14, 3))
+ftsize=10
+fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(14.0, 3.5))
 
 unconstrained_dict = run_simulation(linear_sys, cbf, method='unfilter')
 unconstrained_simulation_states = unconstrained_dict['simulation_states']
@@ -102,7 +102,25 @@ axes[0].plot(np.arange(0, constrained_runtime)*linear_sys.dt, constrained_cbf_st
 axes[1].plot(np.arange(0, constrained_runtime)*linear_sys.dt, constrained_controls[0:constrained_runtime], label='HCBF-Filtered', color='k')
 axes[2].plot(constrained_simulation_states[0, :], constrained_simulation_states[1, :], label='HCBF-Filtered', color='k')
 
+cbf.use_smooth_max = True
+alphas = [1.0, 0.5, 0.3, 0.1]
+for kiter, kappa in enumerate([3.5, 2.5, 2.0, 1.5]):
+    cbf.kappa = kappa
+    ddpcbf_smooth_dict = run_simulation(linear_sys, cbf, method='ddpcbf', Rc=5e-2, horizon=15, gamma=0.97)
+    ddpcbf_smooth_simulation_states = ddpcbf_smooth_dict['simulation_states']
+    ddpcbf_smooth_cbf_states = ddpcbf_smooth_dict['cbf_states']
+    ddpcbf_smooth_runtime = ddpcbf_smooth_dict['runtime']
+    ddpcbf_smooth_controls = ddpcbf_smooth_dict['controls']
+    ddpcbf_smooth_solver_types = ddpcbf_smooth_dict['solver_types']
 
+    label_tag = f'CBFDDP-SM $\kappa=${kappa}'
+    axes[0].plot(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, ddpcbf_smooth_cbf_states[0:ddpcbf_smooth_runtime], label=label_tag, color='b', alpha=alphas[kiter])
+    axes[1].plot(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, ddpcbf_smooth_controls[0:ddpcbf_smooth_runtime], label=label_tag, color='b', alpha=alphas[kiter])
+    if kappa==3.5:
+        axes[1].fill_between(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, -1.0, 1.0, where=(ddpcbf_smooth_solver_types>0), color='b', alpha=0.1)
+    axes[2].plot(ddpcbf_smooth_simulation_states[0, :], ddpcbf_smooth_simulation_states[1, :], label=label_tag, color='b', alpha=alphas[kiter])
+
+cbf.use_smooth_max = False
 ddpcbf_dict = run_simulation(linear_sys, cbf, method='ddpcbf', Rc=5e-2, horizon=15, gamma=0.97)
 ddpcbf_simulation_states = ddpcbf_dict['simulation_states']
 ddpcbf_cbf_states = ddpcbf_dict['cbf_states']
@@ -115,47 +133,29 @@ axes[1].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_controls[0:ddpcb
 #axes[1].fill_between(np.arange(0, ddpcbf_runtime)*linear_sys.dt, -1.0, 1.0, where=(ddpcbf_solver_types>0), color='r', alpha=0.2)
 axes[2].plot(ddpcbf_simulation_states[0, :], ddpcbf_simulation_states[1, :], label='CBFDDP-HM', color='r')
 
-cbf.use_smooth_max = True
-alphas = [1.0, 0.5, 0.3, 0.1]
-for kiter, kappa in enumerate([2.0, 2.5, 1.5, 3.5]):
-    cbf.kappa = kappa
-    ddpcbf_smooth_dict = run_simulation(linear_sys, cbf, method='ddpcbf', Rc=5e-2, horizon=15, gamma=0.97)
-    ddpcbf_smooth_simulation_states = ddpcbf_smooth_dict['simulation_states']
-    ddpcbf_smooth_cbf_states = ddpcbf_smooth_dict['cbf_states']
-    ddpcbf_smooth_runtime = ddpcbf_smooth_dict['runtime']
-    ddpcbf_smooth_controls = ddpcbf_smooth_dict['controls']
-    ddpcbf_smooth_solver_types = ddpcbf_smooth_dict['solver_types']
-
-    label_tag = f'CBFDDP-SM $\kappa=${kappa}'
-    axes[0].plot(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, ddpcbf_smooth_cbf_states[0:ddpcbf_smooth_runtime], label=label_tag, color='b', alpha=alphas[kiter])
-    axes[1].plot(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, ddpcbf_smooth_controls[0:ddpcbf_smooth_runtime], label=label_tag, color='b', alpha=alphas[kiter])
-    if kappa==2.0:
-        axes[1].fill_between(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, -1.0, 1.0, where=(ddpcbf_smooth_solver_types>0), color='b', alpha=0.1)
-    axes[2].plot(ddpcbf_smooth_simulation_states[0, :], ddpcbf_smooth_simulation_states[1, :], label=label_tag)
-
 #axes[0].plot(np.arange(0, T)*linear_sys.dt, unconstrained_cbf_states, label='Unfiltered')
 axes[0].set_xlabel('Time (s)', fontsize=ftsize)
 axes[0].set_ylabel('CBF Value', fontsize=ftsize)
 axes[0].legend(fontsize=ftsize)
-xticks = np.round(np.linspace(0, T*linear_sys.dt, 4), 2)
+xticks = np.round(np.linspace(0, T*linear_sys.dt, 2), 2)
 axes[0].set_xticks(ticks=xticks, labels=xticks)
-yticks = np.round(np.linspace(0.0, constrained_cbf_states.max(), 4), 2)
+yticks = np.round(np.linspace(0.0, 1.2, 2), 2)
 axes[0].set_yticks(ticks=yticks, labels=yticks)
 axes[0].tick_params(labelsize=ftsize)
 #axes[0].set_xlim([0, constrained_runtime*linear_sys.dt])
 #axes[0].set_ylim([-0.1, round(constrained_cbf_states.max(), 2)])
-axes[0].grid()
+#axes[0].grid()
 
 #axes[0, 1].plot(np.arange(0, T)*linear_sys.dt, unconstrained_controls, label='UnFiltered')
 axes[1].set_xlabel('Time (s)', fontsize=ftsize)
 axes[1].set_ylabel('Controls', fontsize=ftsize)
 #axes[1].legend(fontsize=ftsize)
-xticks = np.round(np.linspace(0, T*linear_sys.dt, 4), 2)
+xticks = np.round(np.linspace(0, T*linear_sys.dt, 2), 2)
 axes[1].set_xticks(ticks=xticks, labels=xticks)
-yticks = np.round(np.linspace(-1.0, 1.0, 4), 2)
+yticks = np.round(np.linspace(-1.0, 1.0, 2), 2)
 axes[1].set_yticks(ticks=yticks, labels=yticks)
 axes[1].tick_params(labelsize=ftsize)
-axes[1].grid()
+#axes[1].grid()
 
 ellipse = Ellipse(xy=cbf.c, width=2*cbf.beta, height=2*cbf.beta, 
                         edgecolor='g', fc='None', lw=2)
@@ -163,9 +163,14 @@ axes[2].add_patch(ellipse)
 ellipse_pair = Ellipse(xy=cbf.c + cbf.shift, width=2*cbf.beta, height=2*cbf.beta, 
                         edgecolor='g', fc='None', lw=2)
 axes[2].add_patch(ellipse_pair)
+xticks = np.round(np.linspace(-1, 2, 2), 2)
+axes[2].set_xticks(ticks=xticks, labels=xticks)
+yticks = np.round(np.linspace(-1.2, 1.2, 3), 2)
 axes[2].set_xlabel('X axis', fontsize=ftsize)
 axes[2].set_ylabel('Y axis', fontsize=ftsize)
-axes[2].grid()
+axes[2].tick_params(labelsize=ftsize)
+axes[2].set_yticks(ticks=yticks, labels=yticks)
+#axes[2].grid()
 
 # axes[1, 0].plot(np.arange(0, constrained_runtime)*linear_sys.dt, constrained_lie_f[0:constrained_runtime], label='Filtered')
 # axes[1, 0].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_lie_f[0:ddpcbf_runtime], label='CBFDDP-Filtered')
