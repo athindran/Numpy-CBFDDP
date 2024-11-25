@@ -317,7 +317,7 @@ class DDPCBFFilter:
 
         _, Bd, _, _ = dyn_copy.get_jacobian(state_x, control_cbf)
 
-        eps_regularization = 1e-6
+        eps_regularization = 1e-4
 
         constraint_violation = solver_dict_plan_2['reachable_margin'] - self.gamma*solver_dict_plan_1['reachable_margin']
         scaled_c = constraint_violation 
@@ -333,7 +333,7 @@ class DDPCBFFilter:
             control_cbf = control_cbf + control_correction
             control_cbf_new = control_cbf + control_correction
             control_cbf_new = control_cbf_new.ravel()
-            control_cbf_new = np.clip(control_cbf_new, -2.0, 2.0)
+            #control_cbf_new = np.clip(control_cbf_new, -2.0, 2.0)
             # Testing barrier quality
             imag_state_x, control_cbf_new = dyn_copy.step( state_x, control_cbf_new )
             _, solver_dict_plan_3, constraints_data_plan_3 = self.rollout_policy_2.get_action( np.array( imag_state_x ) , 
@@ -349,7 +349,7 @@ class DDPCBFFilter:
             p_norm = np.linalg.norm( p )
             constraint_violation = solver_dict_plan_2['reachable_margin'] - self.gamma*(solver_dict_plan_1['reachable_margin'])
             boot_controls = solver_dict_plan_2['controls']
-            scaled_c = 1.0*constraint_violation 
+            scaled_c = 1.3*constraint_violation 
         
         print("Constraint violation", constraint_violation)
         #if solver_dict_plan_2["reachable_margin"]<=0.0:
