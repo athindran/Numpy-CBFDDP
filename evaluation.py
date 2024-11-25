@@ -6,7 +6,7 @@ from matplotlib.patches import Ellipse
 import numpy as np
 import copy
 
-from cbfs_and_costs import MultiCBF, MultiCBF_b
+from cbfs_and_costs import MultiCBF, CBF
 from policies import ReachabilityLQPolicy, DDPCBFFilter
 from dynamics import LinearSys
 import matplotlib as mpl
@@ -27,7 +27,7 @@ if cbf_type == 'A':
 else:
     cbf = None
 
-T = 600
+T = 650
 
 cbf_a_params = {'kappa':1.0, 'gamma':0.99, 'Rc':5e-2, 'horizon':15}
 def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=None):
@@ -49,7 +49,8 @@ def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=No
         if method == 'unfilter':
             action_filtered = action_perf
         elif method == 'hcbf':
-            action_filtered, lie_f, lie_g = cbf.apply_filter(obs.ravel(), action_perf, linear_sys)
+            action_filtered, lie_f, lie_g, filter_active = cbf.apply_filter(obs.ravel(), action_perf, linear_sys)
+            solver_types[idx] = filter_active
             lie_f_vals[idx] = lie_f.ravel()[0]
             lie_g_vals[idx] = lie_g.ravel()[0]
         elif method == 'ddpcbf':
@@ -62,7 +63,7 @@ def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=No
         obs = np.array(new_obs)
 
         if method!='ddpcbf':
-            cbf_eval = cbf.eval(new_obs)
+            cbf_eval = cbf.eval(obs.ravel())
         else:
             cbf_eval = ddp_cbf_eval
 
@@ -93,22 +94,25 @@ fig, axes = plt.subplots(nrows=5, ncols=3, figsize=(14.0, 19.0))
 alphas = [1.0, 1.0, 1.0, 1.0, 1.0]
 lw = 2.5
 
-unconstrained_dict = run_simulation(linear_sys, cbf, method='unfilter')
-unconstrained_simulation_states = unconstrained_dict['simulation_states']
-unconstrained_cbf_states = unconstrained_dict['cbf_states']
-unconstrained_runtime = unconstrained_dict['runtime']
-unconstrained_controls = unconstrained_dict['controls']
+# unconstrained_dict = run_simulation(linear_sys, cbf, method='unfilter')
+# unconstrained_simulation_states = unconstrained_dict['simulation_states']
+# unconstrained_cbf_states = unconstrained_dict['cbf_states']
+# unconstrained_runtime = unconstrained_dict['runtime']
+# unconstrained_controls = unconstrained_dict['controls']
 
+cbf.use_smoothening = False
 constrained_dict = run_simulation(linear_sys, cbf, method='hcbf')
 constrained_simulation_states = constrained_dict['simulation_states']
 constrained_cbf_states = constrained_dict['cbf_states']
 constrained_runtime = constrained_dict['runtime']
 constrained_controls = constrained_dict['controls']
+constrained_solver_types = constrained_dict['solver_types']
 
 for row_number in range(5):
     axes[row_number, 0].plot(np.arange(0, constrained_runtime)*linear_sys.dt, constrained_cbf_states[0:constrained_runtime], label='HCBF-Filtered', color=viridis(0), linewidth=lw)
     axes[row_number, 1].plot(np.arange(0, constrained_runtime)*linear_sys.dt, constrained_controls[0:constrained_runtime], label='HCBF-Filtered', color=viridis(0), linewidth=lw)
     axes[row_number, 2].plot(constrained_simulation_states[0, :], constrained_simulation_states[1, :], label='HCBF-Filtered', color=viridis(0), linewidth=lw)
+    axes[row_number, 0].fill_between(np.arange(0, constrained_runtime)*linear_sys.dt, 0.0, 1.0, where=(constrained_solver_types>0), color=viridis(0), alpha=0.1)
 
 cbf.use_smoothening = False
 ddpcbf_dict = run_simulation(linear_sys, cbf, method='ddpcbf', Rc=cbf_a_params['Rc'], horizon=cbf_a_params['horizon'], gamma=cbf_a_params['gamma'])
@@ -138,7 +142,7 @@ for kiter, kappa in enumerate([0.1, 0.5, 1.5, 3.0, 4.5]):
     label_tag = f'CBFDDP-SM'
     axes[kiter, 0].plot(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, ddpcbf_smooth_cbf_states[0:ddpcbf_smooth_runtime], label=label_tag, color='b', alpha=alphas[kiter], linewidth=lw)
     axes[kiter, 1].plot(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, ddpcbf_smooth_controls[0:ddpcbf_smooth_runtime], label=label_tag, color='b', alpha=alphas[kiter], linewidth=lw)
-    axes[kiter, 1].fill_between(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, -1.0, 1.0, where=(ddpcbf_smooth_solver_types>0), color='b', alpha=0.1)
+    axes[kiter, 0].fill_between(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, 0.0, 1.0, where=(ddpcbf_smooth_solver_types>0), color='b', alpha=0.1)
     axes[kiter, 2].plot(ddpcbf_smooth_simulation_states[0, :], ddpcbf_smooth_simulation_states[1, :], label=label_tag, color='b', alpha=alphas[kiter], linewidth=lw)
     #axes[kiter, 0].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
     axes[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
@@ -148,6 +152,7 @@ for row_number in range(5):
     #axes[row_number, 0].plot(np.arange(0, T)*linear_sys.dt, unconstrained_cbf_states, label='Unfiltered')
     if row_number==4:
         axes[row_number, 0].set_xlabel('Time (s)', fontsize=ftsize)
+    axes[row_number, 0].plot(np.arange(0, T)*linear_sys.dt, [[0]]*T)
     axes[row_number, 0].set_ylabel('CBF Value', fontsize=ftsize)
     axes[row_number, 0].legend(fontsize=ftsize)
     xticks = np.round(np.linspace(0, T*linear_sys.dt, 2), 2)
