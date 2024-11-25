@@ -317,7 +317,7 @@ class DDPCBFFilter:
 
         _, Bd, _, _ = dyn_copy.get_jacobian(state_x, control_cbf)
 
-        eps_regularization = 1e-4
+        eps_regularization = 1e-6
 
         constraint_violation = solver_dict_plan_2['reachable_margin'] - self.gamma*solver_dict_plan_1['reachable_margin']
         scaled_c = constraint_violation 

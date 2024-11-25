@@ -126,7 +126,7 @@ for row_number in range(5):
 
 
 cbf.use_smoothening = True
-for kiter, kappa in enumerate([4.5, 3.5, 1.5, 1.0, 0.5]):
+for kiter, kappa in enumerate([0.1, 0.5, 1.5, 3.0, 4.5]):
     cbf.kappa = kappa
     ddpcbf_smooth_dict = run_simulation(linear_sys, cbf, method='ddpcbf', Rc=cbf_a_params['Rc'], horizon=cbf_a_params['horizon'], gamma=cbf_a_params['gamma'])
     ddpcbf_smooth_simulation_states = ddpcbf_smooth_dict['simulation_states']

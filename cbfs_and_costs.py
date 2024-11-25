@@ -94,7 +94,7 @@ class MultiCBF(CBF):
         h2 = self.beta - (state_x_m - (self.c + self.shift)).T @ self.P @ (state_x_m - (self.c + self.shift))
 
         if self.use_smoothening:
-            hsm = (np.log(np.exp(self.kappa*h1) + np.exp(self.kappa*h2)) - np.log(2))/self.kappa
+            hsm = (np.log(np.exp(self.kappa*h1) + np.exp(self.kappa*h2)) - 0.8*np.log(2))/self.kappa
             return hsm
         else:
             return np.maximum(h1, h2)
