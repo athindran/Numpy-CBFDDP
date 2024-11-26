@@ -81,9 +81,9 @@ class MultiCBF:
         self.shift = np.array([[-1.0], [0.0]])
         self.beta = 1.0
         self.gamma = 0.5
-        self.P = np.diag([1.0, 1.0])
+        self.P = np.diag([1.5, 1.0])
         self.c = np.zeros((2, 1))
-        self.c[0 , 0] = 1.125
+        self.c[0 , 0] = 1.25
         self.kappa = kappa
         self.use_smoothening = use_smoothening
 

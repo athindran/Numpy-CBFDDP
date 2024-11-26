@@ -176,18 +176,18 @@ for row_number in range(5):
     axes[row_number, 1].tick_params(labelsize=ftsize)
     #axes[row_number, 1].grid()
 
-    ellipse = Ellipse(xy=cbf.c, width=2*cbf.beta, height=2*cbf.beta, 
+    ellipse = Ellipse(xy=cbf.c, width=2*cbf.beta/np.sqrt(cbf.P[0, 0]), height=2*cbf.beta/np.sqrt(cbf.P[1, 1]), 
                             edgecolor='k', fc='None', lw=0.5)
     axes[row_number, 2].add_patch(ellipse)
-    ellipse_pair = Ellipse(xy=cbf.c + cbf.shift, width=2*cbf.beta, height=2*cbf.beta, 
+    ellipse_pair = Ellipse(xy=cbf.c + cbf.shift, width=2*cbf.beta/np.sqrt(cbf.P[0, 0]), height=2*cbf.beta/np.sqrt(cbf.P[1, 1]), 
                             edgecolor='k', fc='None', lw=0.5)
     axes[row_number, 2].add_patch(ellipse_pair)
     xticks = np.round(np.linspace(-1, 2, 2), 2)
     axes[row_number, 2].set_xticks(ticks=xticks, labels=xticks)
     yticks = np.round(np.linspace(-1.2, 1.2, 3), 2)
     if row_number==4:
-        axes[row_number, 2].set_xlabel('X axis', fontsize=ftsize)
-    axes[row_number, 2].set_ylabel('Y axis', fontsize=ftsize)
+        axes[row_number, 2].set_xlabel('$State x$', fontsize=ftsize)
+    axes[row_number, 2].set_ylabel('$State \dot{x}$', fontsize=ftsize)
     axes[row_number, 2].tick_params(labelsize=ftsize)
     axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks)
 #axes[2].grid()
