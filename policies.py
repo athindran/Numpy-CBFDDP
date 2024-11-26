@@ -320,10 +320,11 @@ class DDPCBFFilter:
         eps_regularization = 1e-6
 
         constraint_violation = solver_dict_plan_2['reachable_margin'] - self.gamma*solver_dict_plan_1['reachable_margin']
-        scaled_c = constraint_violation 
+        scaling_factor = 0.5
+        scaled_c = scaling_factor*constraint_violation 
         p = Bd.T @ constraints_data_plan_2['V_x']
         P = -eps_regularization * \
-                np.eye(self.rollout_policy_1.action_dim) + Bd.T @ constraints_data_plan_2['V_xx'] @ Bd
+                np.eye(self.rollout_policy_1.action_dim) + 0.5 * Bd.T @ constraints_data_plan_2['V_xx'] @ Bd
         p_norm = np.linalg.norm(p)
         barrier_entries = 0
         while constraint_violation<=0 and barrier_entries<5:

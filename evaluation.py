@@ -27,7 +27,7 @@ if cbf_type == 'A':
 else:
     cbf = None
 
-T = 650
+T = 350
 
 cbf_a_params = {'kappa':1.0, 'gamma':0.99, 'Rc':5e-2, 'horizon':15}
 def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=None):
