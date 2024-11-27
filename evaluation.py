@@ -27,7 +27,7 @@ if cbf_type == 'A':
 else:
     cbf = None
 
-T = 350
+T = 400
 
 cbf_a_params = {'kappa':1.0, 'gamma':0.99, 'Rc':5e-2, 'horizon':15}
 def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=None):
@@ -89,8 +89,8 @@ def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=No
 
     return output_dict
 
-ftsize=10
-fig, axes = plt.subplots(nrows=5, ncols=3, figsize=(14.0, 19.0))
+ftsize=13
+fig, axes = plt.subplots(nrows=5, ncols=3, sharey='col', sharex='col', figsize=(14.0, 19.0))
 alphas = [1.0, 1.0, 1.0, 1.0, 1.0]
 lw = 2.5
 
@@ -145,28 +145,32 @@ for kiter, kappa in enumerate([0.1, 0.5, 1.5, 3.0, 4.5]):
     axes[kiter, 0].fill_between(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, 0.0, 1.0, where=(ddpcbf_smooth_solver_types>0), color='b', alpha=0.1)
     axes[kiter, 2].plot(ddpcbf_smooth_simulation_states[0, :], ddpcbf_smooth_simulation_states[1, :], label=label_tag, color='b', alpha=alphas[kiter], linewidth=lw)
     #axes[kiter, 0].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
-    axes[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
+    axes[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=16)
     #axes[kiter, 2].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
 
 for row_number in range(5):
     #axes[row_number, 0].plot(np.arange(0, T)*linear_sys.dt, unconstrained_cbf_states, label='Unfiltered')
     if row_number==4:
         axes[row_number, 0].set_xlabel('Time (s)', fontsize=ftsize)
+        axes[row_number, 0].xaxis.set_label_coords(.5, -.05)
     axes[row_number, 0].plot(np.arange(0, T)*linear_sys.dt, [[0]]*T)
     axes[row_number, 0].set_ylabel('CBF Value', fontsize=ftsize)
-    axes[row_number, 0].legend(fontsize=ftsize)
+    axes[row_number, 0].legend(fontsize=10, loc="upper right")
     xticks = np.round(np.linspace(0, T*linear_sys.dt, 2), 2)
     axes[row_number, 0].set_xticks(ticks=xticks, labels=xticks)
     yticks = np.round(np.linspace(0.0, 1.2, 2), 2)
     axes[row_number, 0].set_yticks(ticks=yticks, labels=yticks)
     axes[row_number, 0].tick_params(labelsize=ftsize)
-    #axes[row_number, 0].set_xlim([0, constrained_runtime*linear_sys.dt])
-    #axes[row_number, 0].set_ylim([-0.1, round(constrained_cbf_states.max(), 2)])
+    axes[row_number, 0].set_xlim([0, T*linear_sys.dt])
+    axes[row_number, 0].set_ylim([-0.1, 1.2])
+    axes[row_number, 0].yaxis.set_label_coords(-0.05, 0.5)
     #axes[row_number, 0].grid()
 
     #axes[row_number, 0, 1].plot(np.arange(0, T)*linear_sys.dt, unconstrained_controls, label='UnFiltered')
     if row_number==4:
         axes[row_number, 1].set_xlabel('Time (s)', fontsize=ftsize)
+        axes[row_number, 1].xaxis.set_label_coords(.5, -.05)
+
     axes[row_number, 1].set_ylabel('Controls', fontsize=ftsize)
     #axes[row_number, 1].legend(fontsize=ftsize)
     xticks = np.round(np.linspace(0, T*linear_sys.dt, 2), 2)
@@ -174,6 +178,10 @@ for row_number in range(5):
     yticks = np.round(np.linspace(-1.0, 1.0, 2), 2)
     axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks)
     axes[row_number, 1].tick_params(labelsize=ftsize)
+    axes[row_number, 1].set_xlim([0, T*linear_sys.dt])
+    axes[row_number, 1].set_ylim([-1.0, 1.0])
+    axes[row_number, 1].yaxis.set_label_coords(-0.05, 0.5)
+
     #axes[row_number, 1].grid()
 
     ellipse = Ellipse(xy=cbf.c, width=2*cbf.beta/np.sqrt(cbf.P[0, 0]), height=2*cbf.beta/np.sqrt(cbf.P[1, 1]), 
@@ -184,12 +192,18 @@ for row_number in range(5):
     axes[row_number, 2].add_patch(ellipse_pair)
     xticks = np.round(np.linspace(-1, 2, 2), 2)
     axes[row_number, 2].set_xticks(ticks=xticks, labels=xticks)
-    yticks = np.round(np.linspace(-1.2, 1.2, 3), 2)
+    yticks = np.round(np.linspace(-1.2, 1.2, 2), 2)
     if row_number==4:
-        axes[row_number, 2].set_xlabel('$State x$', fontsize=ftsize)
-    axes[row_number, 2].set_ylabel('$State \dot{x}$', fontsize=ftsize)
+        axes[row_number, 2].set_xlabel('State $x$', fontsize=ftsize)
+        axes[row_number, 2].xaxis.set_label_coords(0.5, -.05)
+
+    axes[row_number, 2].set_ylabel('State $\dot{x}$', fontsize=ftsize)
     axes[row_number, 2].tick_params(labelsize=ftsize)
     axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks)
+    axes[row_number, 2].set_xlim([-1.0, 2.5])
+    axes[row_number, 2].set_ylim([-1.2, 1.2])
+    axes[row_number, 2].yaxis.set_label_coords(-0.05, 0.5)
+
 #axes[2].grid()
 
 # axes[1, 0].plot(np.arange(0, constrained_runtime)*linear_sys.dt, constrained_lie_f[0:constrained_runtime], label='Filtered')
