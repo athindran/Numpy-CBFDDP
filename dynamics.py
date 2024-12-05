@@ -41,9 +41,12 @@ class LinearSys(gym.Env):
         """
         return (self.A @ state_x + self.B @ u)
     
-    def reset(self):
+    def reset(self, cbf_type):
         """
         Reset to initial state.
         """
-        #return np.array([[0.0, 1.4]])
-        return np.array([[1.0, 0.0]])
+        if cbf_type == 'A':
+            return np.array([[1.0, 0.0]])
+        elif cbf_type == 'B':
+            return np.array([[-0.8, 1.5]])
+
