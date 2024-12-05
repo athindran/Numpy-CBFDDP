@@ -50,11 +50,10 @@ class ReachabilityLQPolicy:
         self.marginFunc =  marginFunc
         self.horizon = horizon
         self.env = env
-        self.env.reset()
         
         self.R = np.diag(Rc* np.ones((env.action_dim, )))
 
-        self.tol = 1e-5
+        self.tol = 1e-6
         self.eps = 1e-5
         self.max_iters = 30
         self.line_search = "baseline"
@@ -104,7 +103,7 @@ class ReachabilityLQPolicy:
                 reachable_margin = failure_margin
                 critical_margin = failure_margin
 
-            reachable_margin = reachable_margin - 0.5*nominal_controls[t]@self.R@nominal_controls[t]
+            reachable_margin = reachable_margin - 0.5*nominal_controls[t] @ self.R @ nominal_controls[t]
             t = t - 1
         return reachable_margin, critical_margin, state_margins, critical_index
         
@@ -144,7 +143,7 @@ class ReachabilityLQPolicy:
                 reachable_margin = failure_margin
             else:
                 index_lists[self.horizon - 1 - t] = 0
-            reachable_margin = reachable_margin - 0.5*nominal_controls[t]@self.R@nominal_controls[t]
+            reachable_margin = reachable_margin - 0.5*nominal_controls[t] @ self.R @ nominal_controls[t]
             margins[t] = reachable_margin
             state_margins[t] = failure_margin
             t = t - 1
@@ -267,7 +266,6 @@ class DDPLRFilter:
         self.rollout_policy_1 =  ReachabilityLQPolicy(state_dim, action_dim, marginFunc, copy.deepcopy(env), horizon, Rc)
         self.rollout_policy_2 =  ReachabilityLQPolicy(state_dim, action_dim, marginFunc, copy.deepcopy(env), horizon, Rc)
         self.reinit_controls = np.zeros((horizon, action_dim))
-        self.reinit_controls[:, 0] = 1.0
 
     def apply_filter(self, state_x, u_perf, linear_sys):
         dyn_copy = copy.deepcopy(linear_sys)
@@ -281,15 +279,15 @@ class DDPLRFilter:
                                                                                           initial_controls=boot_controls)
         boot_controls = np.array(solver_dict_plan_2['controls'])
 
-        if(solver_dict_plan_2['reachable_margin']>=0.0):
+        if(solver_dict_plan_2['reachable_margin']>0.0):
             filtered_control = np.array( u_perf )
             self.reinit_controls = np.array( solver_dict_plan_2['controls'] )
         else:
             print("Filter active")
             filtered_control = np.array(control_safe_1)
-            self.reinit_controls = np.array( solver_dict_plan_1['controls'] )
+            self.reinit_controls = np.array( boot_controls )
         
-        return filtered_control, solver_dict_plan_1["reachable_margin"]
+        return filtered_control, solver_dict_plan_1["margin"]
     
 class DDPCBFFilter:
     def __init__(self, state_dim: int, action_dim: int, marginFunc: CBF, env: gym.Env, horizon: int, Rc: float, gamma: float):
@@ -298,7 +296,6 @@ class DDPCBFFilter:
         self.rollout_policy_2 =  ReachabilityLQPolicy(state_dim=state_dim, action_dim=action_dim, marginFunc=marginFunc, 
                                                       env=copy.deepcopy(env), horizon=horizon, Rc=Rc)
         self.reinit_controls = np.zeros((horizon, action_dim))
-        #self.reinit_controls[:, 0] = 1.0
         self.gamma = gamma
 
     def apply_filter(self, state_x, u_perf, linear_sys):
