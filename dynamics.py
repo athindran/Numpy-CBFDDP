@@ -47,6 +47,6 @@ class LinearSys(gym.Env):
         """
         if cbf_type == 'A':
             return np.array([[1.0, 0.0]])
-        elif cbf_type == 'B':
+        elif cbf_type == 'B' or cbf_type=='C':
             return np.array([[-0.8, 1.5]])
 

@@ -3,10 +3,11 @@ sys.path.append(".")
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.patches import Ellipse
+import matplotlib.lines as mlines
 import numpy as np
 import copy
 
-from cbfs_and_costs import MultiCBF, CBF, MultiCBF_b
+from cbfs_and_costs import MultiCBF, CBF, MultiCBF_b, MultiCBF_c
 from policies import ReachabilityLQPolicy, DDPCBFFilter, DDPLRFilter
 from dynamics import LinearSys
 import matplotlib as mpl
@@ -16,18 +17,19 @@ viridis = mpl.colormaps['viridis'].resampled(8)
 
 linear_sys = LinearSys()
 
-cbf_type = 'A'
+cbf_type = 'B'
 if cbf_type == 'A':
     cbf = MultiCBF()
 elif cbf_type == 'B':
      cbf = MultiCBF_b()
-# elif cbf_type == 'C':
-#     cbf = CBF_c()
+elif cbf_type == 'C':
+     cbf = MultiCBF_c()
 else:
     cbf = None
 
 cbf_a_params = {'kappa':1.0, 'gamma':0.99, 'Rc':5e-2, 'horizon':15}
 cbf_b_params = {'kappa':1.0, 'gamma':0.99, 'Rc':5e-2, 'horizon':15}
+cbf_c_params = {'kappa':1.0, 'gamma':0.995, 'Rc':5e-2, 'horizon':15}
 
 if cbf_type == 'A':
     cbf_params = cbf_a_params
@@ -40,6 +42,12 @@ elif cbf_type == 'B':
     T = 250
     action_perf = np.array([-1.5])
     kappavals = [0.5, 1.0, 1.5, 2.0, 3.0]
+    enable_lr = False
+elif cbf_type == 'C':
+    cbf_params = cbf_c_params
+    T = 350
+    action_perf = np.array([-1.5])
+    kappavals = [1.0, 1.5, 2.0, 3.0, 4.0]
     enable_lr = False
 
 def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=None):
@@ -89,7 +97,7 @@ def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=No
 
         simulation_states[:, idx] = np.array(obs)
         cbf_states[idx] = cbf_eval.ravel()[0]
-        controls[idx] = action_filtered.copy().ravel()[0]
+        controls[idx] = action.copy().ravel()[0]
 
         print(f"Step: {idx}, Obs: {new_obs}, Action: {action}, CBF eval: {cbf_eval}")
         # if(cbf_eval<1e-2):
@@ -200,7 +208,7 @@ for row_number in range(5):
     axes[row_number, 0].set_xlim([0, T*linear_sys.dt])
     if cbf_type=='A':
         axes[row_number, 0].set_ylim([-0.1, 1.2])
-    elif cbf_type=='B':
+    elif cbf_type=='B' or cbf_type=='C':
         axes[row_number, 0].set_ylim([-0.1, 1.5])
     axes[row_number, 0].yaxis.set_label_coords(-0.05, 0.5)
     #axes[row_number, 0].grid()
@@ -214,15 +222,22 @@ for row_number in range(5):
     #axes[row_number, 1].legend(fontsize=ftsize)
     xticks = np.round(np.linspace(0, T*linear_sys.dt, 2), 2)
     axes[row_number, 1].set_xticks(ticks=xticks, labels=xticks)
-    yticks = np.round(np.linspace(-1.0, 1.0, 2), 2)
-    axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks)
     axes[row_number, 1].tick_params(labelsize=ftsize)
     axes[row_number, 1].set_xlim([0, T*linear_sys.dt])
 
     if cbf_type=='A':
         axes[row_number, 1].set_ylim([-1.0, 1.0])
+        yticks = np.round(np.linspace(-1.0, 1.0, 2), 2)
+        axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks)
     elif cbf_type=='B':
         axes[row_number, 1].set_ylim([-2.0, 2.0])
+        yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
+        axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks)
+    elif cbf_type=='C':
+        axes[row_number, 1].set_ylim([-2.0, 2.0])
+        yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
+        axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks)
+
     axes[row_number, 1].yaxis.set_label_coords(-0.05, 0.5)
 
     ellipse = Ellipse(xy=cbf.c, width=2*cbf.beta/np.sqrt(cbf.P[0, 0]), height=2*cbf.beta/np.sqrt(cbf.P[1, 1]), 
@@ -246,7 +261,15 @@ for row_number in range(5):
         axes[row_number, 2].set_ylim([-1.5, 1.6])
         xticks = np.round(np.linspace(-2.5, 2.5, 2), 2)
         yticks = np.round(np.linspace(-1.5, 1.6, 2), 2)
-
+    elif cbf_type=='C':
+        axes[row_number, 2].set_xlim([-2.5, 3.5])
+        axes[row_number, 2].set_ylim([-1.5, 1.6])
+        xticks = np.round(np.linspace(-2.5, 3.5, 2), 2)
+        yticks = np.round(np.linspace(-1.5, 1.6, 2), 2)
+        yvals = cbf.line_constraint_x * np.ones((101, ))
+        xvals = np.linspace(-2.5, 3.5, 101)
+        axes[row_number, 2].plot(xvals, yvals, 'k-')
+ 
     axes[row_number, 2].set_xticks(ticks=xticks, labels=xticks)
     axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks)
     axes[row_number, 2].set_ylabel('State $\dot{x}$', fontsize=ftsize)
