@@ -16,7 +16,7 @@ viridis = mpl.colormaps['viridis'].resampled(8)
 
 linear_sys = LinearSys()
 
-cbf_type = 'B'
+cbf_type = 'A'
 if cbf_type == 'A':
     cbf = MultiCBF()
 elif cbf_type == 'B':
@@ -68,7 +68,11 @@ def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=No
             lie_f_vals[idx] = lie_f.ravel()[0]
             lie_g_vals[idx] = lie_g.ravel()[0]
         elif method == 'ddpcbf':
-            action_filtered, ddp_cbf_eval, lie_f, lie_g, barrier_entries = ddpcbf.apply_filter(obs.ravel(), action_perf, linear_sys)
+            if idx == 0:
+                initialize = np.zeros((1,))
+            else:
+                initialize = controls[idx - 1] - action_perf
+            action_filtered, ddp_cbf_eval, lie_f, lie_g, barrier_entries = ddpcbf.apply_filter(obs.ravel(), action_perf, linear_sys, initialize=initialize)
             solver_types[idx] = barrier_entries
             lie_f_vals[idx] = lie_f.ravel()[0]
             lie_g_vals[idx] = lie_g.ravel()[0]

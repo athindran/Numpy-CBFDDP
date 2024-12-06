@@ -8,7 +8,7 @@ from cbfs_and_costs import CBF
 import cvxpy as cp
 from cvxpy import SolverError
 
-def barrier_filter_quadratic_one(P, p, c):
+def barrier_filter_quadratic_one(P, p, c, initialize, control_bias_term=np.zeros((1,))):
     def is_neg_def(x):
         # Check if a matrix is PSD
         return np.all(np.real(np.linalg.eigvals(x)) <= 0)
@@ -18,10 +18,11 @@ def barrier_filter_quadratic_one(P, p, c):
     # Check if P is PD
     if (check_nd):
         u = cp.Variable((1))
+        u.value = np.array(initialize)
         P = np.array(P)
         p = np.array(p)
 
-        prob = cp.Problem(cp.Minimize(1.0 * cp.square(u[0])),
+        prob = cp.Problem(cp.Minimize(1.0 * cp.square(u[0] + control_bias_term[0])),
                           [cp.quad_form(u, P) + p.T @ u + c >= 0])
         try:
             prob.solve(verbose=False)
@@ -31,7 +32,8 @@ def barrier_filter_quadratic_one(P, p, c):
     if (not check_nd or u[0] is None or prob.status not in [
             "optimal", "optimal_inaccurate"]):
         u = cp.Variable((1))
-        prob = cp.Problem(cp.Minimize(1.0 * cp.square(u[0])),
+        u.value = np.array(initialize)
+        prob = cp.Problem(cp.Minimize(1.0 * cp.square(u[0] + control_bias_term[0])),
                           [p @ u + c >= 0])
         try:
             prob.solve(verbose=False)
@@ -225,7 +227,7 @@ class ReachabilityLQPolicy:
             # Choose the best alpha scaling using appropriate line search methods
             alpha_chosen = self.baseline_line_search( states, controls, K_closed_loop, k_open_loop, critical_margin, J )
             
-            if alpha_chosen<1e-13:
+            if alpha_chosen<1e-10:
                 J_new = J
                 break
 
@@ -250,7 +252,7 @@ class ReachabilityLQPolicy:
 
     def baseline_line_search( self, states, controls, K_closed_loop, k_open_loop, critical, J, beta=0.3 ):
         alpha = 1.0
-        while alpha>1e-13:
+        while alpha>1e-10:
             _, _, J_new, _, _, _ = self.forward_pass(states, controls, K_closed_loop, k_open_loop, alpha)    
 
             # Accept if there is improvement
@@ -298,7 +300,7 @@ class DDPCBFFilter:
         self.reinit_controls = np.zeros((horizon, action_dim))
         self.gamma = gamma
 
-    def apply_filter(self, state_x, u_perf, linear_sys):
+    def apply_filter(self, state_x, u_perf, linear_sys, initialize):
         dyn_copy = copy.deepcopy(linear_sys)
         control_safe_1, solver_dict_plan_1, constraints_data_plan_1 = self.rollout_policy_1.get_action( 
             np.array( state_x ) , initial_controls=self.reinit_controls)
@@ -317,17 +319,18 @@ class DDPCBFFilter:
         eps_regularization = 1e-6
 
         constraint_violation = solver_dict_plan_2['reachable_margin'] - self.gamma*solver_dict_plan_1['reachable_margin']
-        scaling_factor = 0.5
+        scaling_factor = 0.3
         scaled_c = scaling_factor*constraint_violation 
         p = Bd.T @ constraints_data_plan_2['V_x']
         P = -eps_regularization * \
                 np.eye(self.rollout_policy_1.action_dim) + 0.5 * Bd.T @ constraints_data_plan_2['V_xx'] @ Bd
         p_norm = np.linalg.norm(p)
         barrier_entries = 0
+        control_bias_term = np.zeros((1,))
         while constraint_violation<=0 and barrier_entries<5:
             barrier_entries += 1
             #control_correction = -p*scaled_c/((p_norm)**2 + 1e-12)
-            control_correction = barrier_filter_quadratic_one(P, p, scaled_c)
+            control_correction = barrier_filter_quadratic_one(P, p, scaled_c, initialize, control_bias_term)
             control_cbf = control_cbf + control_correction
             control_cbf_new = control_cbf + control_correction
             control_cbf_new = control_cbf_new.ravel()
@@ -347,8 +350,10 @@ class DDPCBFFilter:
             p_norm = np.linalg.norm( p )
             constraint_violation = solver_dict_plan_2['reachable_margin'] - self.gamma*(solver_dict_plan_1['reachable_margin'])
             boot_controls = solver_dict_plan_2['controls']
-            scaled_c = 1.3*constraint_violation 
+            scaled_c = scaling_factor*constraint_violation 
+            control_bias_term += control_correction
         
+        #self.reinit_controls = np.array(boot_controls)
         print("Constraint violation", constraint_violation)
         #if solver_dict_plan_2["reachable_margin"]<=0.0:
         #    return control_safe_1.ravel(),solver_dict_plan_1["reachable_margin"], constraint_violation, p.copy()
