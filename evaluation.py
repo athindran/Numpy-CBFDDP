@@ -21,9 +21,9 @@ cbf_type = 'B'
 if cbf_type == 'A':
     cbf = MultiCBF()
 elif cbf_type == 'B':
-     cbf = MultiCBF_b()
+    cbf = MultiCBF_b()
 elif cbf_type == 'C':
-     cbf = MultiCBF_c()
+    cbf = MultiCBF_c()
 else:
     cbf = None
 
