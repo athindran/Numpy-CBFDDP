@@ -40,11 +40,11 @@ if cbf_type == 'A':
     nrows = 1
 elif cbf_type == 'B':
     cbf_params = cbf_b_params
-    T = 290
+    T = 600
     action_perf = np.array([1.0, 0.0])
-    kappavals = [6.0, 5.0, 4.0]
+    kappavals = [4.0, 3.0, 2.0, 1.0]
     enable_lr = False
-    nrows = 3
+    nrows = 4
 elif cbf_type == 'C':
     cbf_params = cbf_c_params
     T = 350
@@ -365,11 +365,11 @@ else:
             yticks = np.round(np.linspace(-3.2, 3.2, 2), 2)
             axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks)
         elif cbf_type=='B':
-            axes[row_number, 1].set_ylim([-1.2, 1.2])
-            yticks = np.round(np.linspace(-1.0, 1.0, 2), 2)
+            axes[row_number, 1].set_ylim([-2.2, 2.2])
+            yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
             axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks)
-            axes[row_number, 2].set_ylim([-3.2, 3.2])
-            yticks = np.round(np.linspace(-3.2, 3.2, 2), 2)
+            axes[row_number, 2].set_ylim([-2.2, 2.2])
+            yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
             axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks)
         elif cbf_type=='C':
             axes[row_number, 1].set_ylim([-2.0, 2.0])

@@ -74,12 +74,13 @@ class DoubleIntegrator2D(gym.Env):
         Function additionally integrates internal state.
         """
         assert action.shape[0]==self.action_dim
-        action[0] = np.clip(action[0], a_min=-1.0, a_max=1.0)
-        action[1] = np.clip(action[1], a_min=-3.0, a_max=3.0)
+        action[0] = np.clip(action[0], a_min=-2.0, a_max=2.0)
+        action[1] = np.clip(action[1], a_min=-2.0, a_max=2.0)
         # ODE solver
         #print(obs, action)
         ode_out = solve_ivp(fun=self.deriv_vec, y0=obs.ravel(), args=(action[np.newaxis, :]), t_span=(0, self.dt))
         new_obs = ode_out.y[:, -1]
+        new_obs[2] = np.clip(new_obs[2], a_min=0.0, a_max=10.0)
         return new_obs, action
     
     def get_jacobian(self, obs, action):
@@ -99,4 +100,4 @@ class DoubleIntegrator2D(gym.Env):
         if cbf_type == 'A':
             return np.array([[-1.0, 0.1, 1.5, 0.0]])
         elif cbf_type == 'B' or cbf_type=='C':
-            return np.array([[-1.0, 0.1, 1.5, 0.0]])
+            return np.array([[-1.0, 0.1, 1.0, 0.1]])
