@@ -7,7 +7,7 @@ import matplotlib.lines as mlines
 import numpy as np
 import copy
 
-from cbfs_and_costs2d import CBF, MultiCBF_b
+from cbfs_and_costs2d import CBF, MultiCBF_b, MultiCBF_c
 from policies import ReachabilityLQPolicy, DDPCBFFilter, DDPLRFilter
 from dynamics import DoubleIntegrator2D
 import matplotlib as mpl
@@ -17,19 +17,19 @@ viridis = mpl.colormaps['viridis'].resampled(8)
 
 linear_sys = DoubleIntegrator2D()
 
-cbf_type = 'B'
+cbf_type = 'C'
 if cbf_type == 'A':
     cbf = CBF()
 elif cbf_type == 'B':
      cbf = MultiCBF_b()
-# elif cbf_type == 'C':
-#     cbf = MultiCBF_c()
+elif cbf_type == 'C':
+     cbf = MultiCBF_c()
 else:
     cbf = None
 
 cbf_a_params = {'kappa':1.0, 'gamma':0.98, 'Rc':1e-2, 'horizon':40}
 cbf_b_params = {'kappa':1.0, 'gamma':0.99, 'Rc':5e-2, 'horizon':40}
-cbf_c_params = {'kappa':1.0, 'gamma':0.995, 'Rc':5e-2, 'horizon':15}
+cbf_c_params = {'kappa':1.0, 'gamma':0.99, 'Rc':5e-2, 'horizon':40}
 
 if cbf_type == 'A':
     cbf_params = cbf_a_params
@@ -47,10 +47,11 @@ elif cbf_type == 'B':
     nrows = 4
 elif cbf_type == 'C':
     cbf_params = cbf_c_params
-    T = 350
-    action_perf = np.array([-1.5])
-    kappavals = [1.0, 1.5, 2.0, 3.0, 4.0]
+    T = 550
+    action_perf = np.array([1.0, 0.0])
+    kappavals = [4.0, 3.0, 2.0, 1.0]
     enable_lr = False
+    nrows = 4
 
 def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=None):
     obs = linear_sys.reset(cbf_type)
@@ -372,15 +373,18 @@ else:
             yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
             axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks)
         elif cbf_type=='C':
-            axes[row_number, 1].set_ylim([-2.0, 2.0])
+            axes[row_number, 1].set_ylim([-2.2, 2.2])
             yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
             axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks)
+            axes[row_number, 2].set_ylim([-2.2, 2.2])
+            yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
+            axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks)
 
         ellipse = Ellipse(xy=cbf.c, width=2*cbf.beta/np.sqrt(cbf.P[0, 0]), height=2*cbf.beta/np.sqrt(cbf.P[1, 1]), 
                                 edgecolor='k', fc='None', lw=0.5)
         axes[row_number, 3].add_patch(ellipse)
 
-        if cbf_type == 'B':
+        if cbf_type == 'B' or cbf_type=='C':
             ellipse_pair = Ellipse(xy=cbf.c + cbf.shift, width=2*cbf.beta/np.sqrt(cbf.P[0, 0]), height=2*cbf.beta/np.sqrt(cbf.P[1, 1]), 
                                     edgecolor='k', fc='None', lw=0.5)
             axes[row_number, 3].add_patch(ellipse_pair)
@@ -400,12 +404,13 @@ else:
             xticks = np.round(np.linspace(-1, 2, 2), 2)
             yticks = np.round(np.linspace(-3.5, 3.5, 2), 2)
         elif cbf_type=='C':
-            axes[row_number, 3].set_xlim([-2.5, 3.5])
-            axes[row_number, 3].set_ylim([-1.5, 1.6])
-            xticks = np.round(np.linspace(-2.5, 3.5, 2), 2)
-            yticks = np.round(np.linspace(-1.5, 1.6, 2), 2)
-            yvals = cbf.line_constraint_x * np.ones((101, ))
+            axes[row_number, 3].set_xlim([-1.0, 2.5])
+            axes[row_number, 3].set_ylim([-3.5, 3.5])
+            xticks = np.round(np.linspace(-1, 2, 2), 2)
+            yticks = np.round(np.linspace(-3.5, 3.5, 2), 2)
+
             xvals = np.linspace(-2.5, 3.5, 101)
+            yvals = cbf.line_constraint_x * np.ones((101, )) + 0.1*xvals
             axes[row_number, 3].plot(xvals, yvals, 'k-')
     
         axes[row_number, 3].set_xticks(ticks=xticks, labels=xticks)

@@ -99,5 +99,7 @@ class DoubleIntegrator2D(gym.Env):
         """
         if cbf_type == 'A':
             return np.array([[-1.0, 0.1, 1.5, 0.0]])
-        elif cbf_type == 'B' or cbf_type=='C':
+        elif cbf_type == 'B':
             return np.array([[-1.0, 0.1, 1.0, 0.1]])
+        elif cbf_type=='C':
+            return np.array([[-1.0, 0.1, 1.0, 0.6]])
