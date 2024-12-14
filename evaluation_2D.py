@@ -7,7 +7,7 @@ import matplotlib.lines as mlines
 import numpy as np
 import copy
 
-from cbfs_and_costs2d import CBF, MultiCBF_b, MultiCBF_c
+from cbfs_and_costs2d import CBF, MultiCBF_b, MultiCBF_c, MultiCBF_d
 from policies import ReachabilityLQPolicy, DDPCBFFilter, DDPLRFilter
 from dynamics import DoubleIntegrator2D
 import matplotlib as mpl
@@ -17,41 +17,56 @@ viridis = mpl.colormaps['viridis'].resampled(8)
 
 linear_sys = DoubleIntegrator2D()
 
-cbf_type = 'C'
+cbf_type = 'D'
 if cbf_type == 'A':
     cbf = CBF()
 elif cbf_type == 'B':
      cbf = MultiCBF_b()
 elif cbf_type == 'C':
      cbf = MultiCBF_c()
+elif cbf_type == 'D':
+     cbf = MultiCBF_d() 
 else:
     cbf = None
 
 cbf_a_params = {'kappa':1.0, 'gamma':0.98, 'Rc':1e-2, 'horizon':40}
 cbf_b_params = {'kappa':1.0, 'gamma':0.99, 'Rc':5e-2, 'horizon':40}
 cbf_c_params = {'kappa':1.0, 'gamma':0.99, 'Rc':5e-2, 'horizon':40}
+cbf_d_params = {'kappa':1.0, 'gamma':0.99, 'Rc':5e-2, 'horizon':40}
+
+def get_action_perf(obs, cbf_type):
+    if cbf_type == 'A' or cbf_type == 'B' or cbf_type=='C':
+        return np.array([1.0, 0.0])
+    elif cbf_type == 'D':
+        if obs[0]>=1.5:
+            return np.array([0.5, 0.0])
+        else:
+            return np.array([-1.0, 0.0])
 
 if cbf_type == 'A':
     cbf_params = cbf_a_params
     T = 250
-    action_perf = np.array([1.0, 0.0])
-    kappavals = [0.1, 0.5, 1.5, 3.0, 4.5]
+    kappavals = [1.0]
     enable_lr = True
     nrows = 1
 elif cbf_type == 'B':
     cbf_params = cbf_b_params
     T = 600
-    action_perf = np.array([1.0, 0.0])
     kappavals = [4.0, 3.0, 2.0, 1.0]
     enable_lr = False
     nrows = 4
 elif cbf_type == 'C':
     cbf_params = cbf_c_params
     T = 550
-    action_perf = np.array([1.0, 0.0])
     kappavals = [4.0, 3.0, 2.0, 1.0]
     enable_lr = False
     nrows = 4
+elif cbf_type == 'D':
+    cbf_params = cbf_d_params
+    T = 550
+    kappavals = [4.0, 3.0]
+    enable_lr = False
+    nrows = 2
 
 def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=None):
     obs = linear_sys.reset(cbf_type)
@@ -71,6 +86,7 @@ def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=No
                                 horizon=horizon, Rc=Rc)
 
     for idx in range(T):
+        action_perf = get_action_perf(obs.ravel(), cbf_type)
         if method == 'unfilter':
             action_filtered = action_perf
         elif method == 'hcbf':
@@ -83,7 +99,8 @@ def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=No
                 initialize = np.zeros((2,))
             else:
                 initialize = controls[:, idx - 1] - action_perf
-            action_filtered, ddp_cbf_eval, lie_f, lie_g, barrier_entries = ddpcbf.apply_filter(obs.ravel(), action_perf, linear_sys, initialize=initialize)
+            action_filtered, ddp_cbf_eval, lie_f, lie_g, barrier_entries = ddpcbf.apply_filter(obs.ravel(), action_perf, 
+                                                                                                linear_sys, initialize=initialize)
             solver_types[idx] = barrier_entries
             lie_f_vals[idx] = lie_f.ravel()[0]
             lie_g_vals[idx] = lie_g.ravel()[0]
@@ -123,6 +140,12 @@ def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=No
 
 ftsize=13
 fig, axes = plt.subplots(nrows=nrows, ncols=4, sharey='col', sharex='col', figsize=(15.0, 3.5*nrows))
+
+if cbf_type == 'D':
+    fig2, axes2 = plt.subplots(nrows=nrows, ncols=4, sharey='col', sharex='col', figsize=(15.0, 3.5*nrows))
+else:
+    axes2 = None
+
 alphas = [1.0, 1.0, 1.0, 1.0, 1.0]
 lw = 2.5
 
@@ -180,6 +203,13 @@ for row_number in range(nrows):
         axes[row_number, 0].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_cbf_states[0:ddpcbf_runtime], label='CBFDDP-HM', color='r', linewidth=lw)
         axes[row_number, 1].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_controls[0, 0:ddpcbf_runtime], label='CBFDDP-HM', color='r', linewidth=lw)
         axes[row_number, 2].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_controls[1, 0:ddpcbf_runtime], label='CBFDDP-HM', color='r', linewidth=lw)
+        
+        if axes2 is not None:
+            axes2[row_number, 0].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_cbf_states[0:ddpcbf_runtime], label='CBFDDP-HM', color='r', linewidth=lw)
+            axes2[row_number, 1].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_controls[0, 0:ddpcbf_runtime], label='CBFDDP-HM', color='r', linewidth=lw)
+            axes2[row_number, 2].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_controls[1, 0:ddpcbf_runtime], label='CBFDDP-HM', color='r', linewidth=lw)
+            axes2[row_number, 3].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_simulation_states[2, :], label='CBFDDP-HM', color='r', alpha=0.7, linewidth=lw)     
+
         #axes[row_number, 1].fill_between(np.arange(0, ddpcbf_runtime)*linear_sys.dt, -5.0, 5.0, where=(ddpcbf_solver_types>0), color='r', alpha=0.2)
         #axes[row_number, 2].fill_between(np.arange(0, ddpcbf_runtime)*linear_sys.dt, -5.0, 5.0, where=(ddpcbf_solver_types>0), color='r', alpha=0.2)
         axes[row_number, 3].plot(ddpcbf_simulation_states[0, :], ddpcbf_simulation_states[1, :], label='CBFDDP-HM', color='r', alpha=0.7, linewidth=lw)
@@ -190,6 +220,14 @@ for row_number in range(nrows):
         axes[1].fill_between(np.arange(0, ddpcbf_runtime)*linear_sys.dt, -5.0, 5.0, where=(ddpcbf_solver_types>0), color='r', alpha=0.2)
         axes[2].fill_between(np.arange(0, ddpcbf_runtime)*linear_sys.dt, -5.0, 5.0, where=(ddpcbf_solver_types>0), color='r', alpha=0.2)
         axes[3].plot(ddpcbf_simulation_states[0, :], ddpcbf_simulation_states[1, :], label='CBFDDP-HM', color='r', alpha=0.7, linewidth=lw)     
+
+        if axes2 is not None:
+            axes2[0].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_cbf_states[0:ddpcbf_runtime], label='CBFDDP-HM', color='r', linewidth=lw)
+            axes2[1].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_controls[0, 0:ddpcbf_runtime], label='CBFDDP-HM', color='r', linewidth=lw)
+            axes2[2].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_controls[1, 0:ddpcbf_runtime], label='CBFDDP-HM', color='r', linewidth=lw)
+            axes2[1].fill_between(np.arange(0, ddpcbf_runtime)*linear_sys.dt, -5.0, 5.0, where=(ddpcbf_solver_types>0), color='r', alpha=0.2)
+            axes2[2].fill_between(np.arange(0, ddpcbf_runtime)*linear_sys.dt, -5.0, 5.0, where=(ddpcbf_solver_types>0), color='r', alpha=0.2)
+            axes2[3].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_simulation_states[2, :], label='CBFDDP-HM', color='r', alpha=0.7, linewidth=lw)     
 
 
 cbf.use_smoothening = True
@@ -210,8 +248,25 @@ for kiter, kappa in enumerate(kappavals):
         axes[kiter, 0].fill_between(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, 0.0, 2.0, where=(ddpcbf_smooth_solver_types>0), color='b', alpha=0.1, label='CBFDDP-SM active')
         axes[kiter, 3].plot(ddpcbf_smooth_simulation_states[0, :], ddpcbf_smooth_simulation_states[1, :], label=label_tag, color='b', alpha=alphas[kiter], linewidth=lw)
         #axes[kiter, 0].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
-        axes[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=16)
+        if cbf_type == 'D':
+            axes[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}' + ' with velocity constraint ', fontsize=12)
+        else:
+            axes[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=16)
         #axes[kiter, 2].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
+
+        if axes2 is not None:
+            axes2[kiter, 0].plot(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, ddpcbf_smooth_cbf_states[0:ddpcbf_smooth_runtime], label=label_tag, color='b', alpha=alphas[kiter], linewidth=lw)
+            axes2[kiter, 1].plot(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, ddpcbf_smooth_controls[0, 0:ddpcbf_smooth_runtime], label=label_tag, color='b', alpha=alphas[kiter], linewidth=lw)
+            axes2[kiter, 2].plot(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, ddpcbf_smooth_controls[1, 0:ddpcbf_smooth_runtime], label=label_tag, color='b', alpha=alphas[kiter], linewidth=lw)
+            axes2[kiter, 0].fill_between(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, 0.0, 2.0, where=(ddpcbf_smooth_solver_types>0), color='b', alpha=0.1, label='CBFDDP-SM active')
+            axes2[kiter, 3].plot(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, ddpcbf_smooth_simulation_states[2, :], label=label_tag, color='b', alpha=alphas[kiter], linewidth=lw)
+            #axes[kiter, 0].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
+            if cbf_type == 'D':
+                axes2[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}' + ' velocity constraint ', fontsize=12)
+            else:
+                axes2[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=16)            
+                #axes[kiter, 2].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
+
 
 if nrows == 1:
     axes[0].set_xlabel('Time (s)', fontsize=ftsize)
@@ -312,112 +367,133 @@ if nrows == 1:
     axes[3].tick_params(labelsize=ftsize)
     axes[3].yaxis.set_label_coords(-0.05, 0.5)
 else:
-    for row_number in range(nrows):
-        if row_number==nrows-1:
-            axes[row_number, 0].set_xlabel('Time (s)', fontsize=ftsize)
-            axes[row_number, 0].xaxis.set_label_coords(.5, -.05)
-        axes[row_number, 0].plot(np.arange(0, T)*linear_sys.dt, [[0]]*T)
-        axes[row_number, 0].set_ylabel('CBF Value', fontsize=ftsize)
+    for axeid, axes in enumerate([axes, axes2]):
+        if axes is None:
+            continue
 
-        if row_number == 0:
-            axes[row_number, 0].legend(fontsize=ftsize, loc="upper right", bbox_to_anchor=(2.85, 1.35), ncol=4)
+        for row_number in range(nrows):
+            if row_number==nrows-1:
+                axes[row_number, 0].set_xlabel('Time (s)', fontsize=ftsize)
+                axes[row_number, 0].xaxis.set_label_coords(.5, -.05)
+            axes[row_number, 0].plot(np.arange(0, T)*linear_sys.dt, [[0]]*T)
+            axes[row_number, 0].set_ylabel('CBF Value', fontsize=ftsize)
+
+            if row_number == 0:
+                axes[row_number, 0].legend(fontsize=ftsize, loc="upper right", bbox_to_anchor=(2.85, 1.35), ncol=4)
+            
+            xticks = np.round(np.linspace(0, T*linear_sys.dt, 2), 2)
+            axes[row_number, 0].set_xticks(ticks=xticks, labels=xticks)
+            yticks = np.round(np.linspace(0.0, 1.2, 2), 2)
+            axes[row_number, 0].set_yticks(ticks=yticks, labels=yticks)
+            axes[row_number, 0].tick_params(labelsize=ftsize)
+            axes[row_number, 0].set_xlim([0, T*linear_sys.dt])
+            if cbf_type=='A':
+                axes[row_number, 0].set_ylim([-0.1, 4.8])
+            elif cbf_type=='B' or cbf_type=='C' or cbf_type=='D':
+                axes[row_number, 0].set_ylim([-0.1, 1.5])
+            axes[row_number, 0].yaxis.set_label_coords(-0.05, 0.5)
+            #axes[row_number, 0].grid()
+
+            #axes[row_number, 0, 1].plot(np.arange(0, T)*linear_sys.dt, unconstrained_controls, label='UnFiltered')
+            if row_number==nrows-1:
+                axes[row_number, 1].set_xlabel('Time (s)', fontsize=ftsize)
+                axes[row_number, 1].xaxis.set_label_coords(.5, -.05)
+                axes[row_number, 2].set_xlabel('Time (s)', fontsize=ftsize)
+                axes[row_number, 2].xaxis.set_label_coords(.5, -.05)
+            axes[row_number, 1].yaxis.set_label_coords(-0.05, 0.5)
+            axes[row_number, 2].yaxis.set_label_coords(-0.05, 0.5)
+
+            axes[row_number, 1].set_ylabel('Accel x', fontsize=ftsize)
+            #axes[row_number, 1].legend(fontsize=ftsize)
+            xticks = np.round(np.linspace(0, T*linear_sys.dt, 2), 2)
+            axes[row_number, 1].set_xticks(ticks=xticks, labels=xticks)
+            axes[row_number, 1].tick_params(labelsize=ftsize)
+            axes[row_number, 1].set_xlim([0, T*linear_sys.dt])
+
+            axes[row_number, 2].set_ylabel('Accel y', fontsize=ftsize)
+            #axes[row_number, 1].legend(fontsize=ftsize)
+            xticks = np.round(np.linspace(0, T*linear_sys.dt, 2), 2)
+            axes[row_number, 2].set_xticks(ticks=xticks, labels=xticks)
+            axes[row_number, 2].tick_params(labelsize=ftsize)
+            axes[row_number, 2].set_xlim([0, T*linear_sys.dt])
+
+            if cbf_type=='A':
+                axes[row_number, 1].set_ylim([-1.2, 1.2])
+                yticks = np.round(np.linspace(-1.0, 1.0, 2), 2)
+                axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks)
+                axes[row_number, 2].set_ylim([-3.2, 3.2])
+                yticks = np.round(np.linspace(-3.2, 3.2, 2), 2)
+                axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks)
+            elif cbf_type=='B' or cbf_type=='D':
+                axes[row_number, 1].set_ylim([-2.2, 2.2])
+                yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
+                axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks)
+                axes[row_number, 2].set_ylim([-2.2, 2.2])
+                yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
+                axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks)
+            elif cbf_type=='C':
+                axes[row_number, 1].set_ylim([-2.2, 2.2])
+                yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
+                axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks)
+                axes[row_number, 2].set_ylim([-2.2, 2.2])
+                yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
+                axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks)
+            
+            if axeid == 0:
+                ellipse = Ellipse(xy=cbf.c, width=2*cbf.beta/np.sqrt(cbf.P[0, 0]), height=2*cbf.beta/np.sqrt(cbf.P[1, 1]), 
+                                        edgecolor='k', fc='None', lw=0.5)
+                axes[row_number, 3].add_patch(ellipse)
+
+                if cbf_type == 'B' or cbf_type=='C' or cbf_type=='D':
+                    ellipse_pair = Ellipse(xy=cbf.c + cbf.shift, width=2*cbf.beta/np.sqrt(cbf.P[0, 0]), height=2*cbf.beta/np.sqrt(cbf.P[1, 1]), 
+                                            edgecolor='k', fc='None', lw=0.5)
+                    axes[row_number, 3].add_patch(ellipse_pair)
+
+                if row_number==nrows-1:
+                    axes[row_number, 3].set_xlabel('State $x$', fontsize=ftsize)
+                    axes[row_number, 3].xaxis.set_label_coords(0.5, -.05)
+
+                if cbf_type=='A':        
+                    axes[row_number, 3].set_xlim([-1.0, 2.5])
+                    axes[row_number, 3].set_ylim([-1.2, 1.2])
+                    xticks = np.round(np.linspace(-1, 2, 2), 2)
+                    yticks = np.round(np.linspace(-1.2, 1.2, 2), 2)
+                elif cbf_type=='B' or cbf_type=='D':
+                    axes[row_number, 3].set_xlim([-1.0, 2.5])
+                    axes[row_number, 3].set_ylim([-3.5, 3.5])
+                    xticks = np.round(np.linspace(-1, 2, 2), 2)
+                    yticks = np.round(np.linspace(-3.5, 3.5, 2), 2)
+                elif cbf_type=='C':
+                    axes[row_number, 3].set_xlim([-1.0, 2.5])
+                    axes[row_number, 3].set_ylim([-3.5, 3.5])
+                    xticks = np.round(np.linspace(-1, 2, 2), 2)
+                    yticks = np.round(np.linspace(-3.5, 3.5, 2), 2)
+
+                    xvals = np.linspace(-2.5, 3.5, 101)
+                    yvals = cbf.line_constraint_x * np.ones((101, )) + 0.1*xvals
+                    axes[row_number, 3].plot(xvals, yvals, 'k-')
         
-        xticks = np.round(np.linspace(0, T*linear_sys.dt, 2), 2)
-        axes[row_number, 0].set_xticks(ticks=xticks, labels=xticks)
-        yticks = np.round(np.linspace(0.0, 1.2, 2), 2)
-        axes[row_number, 0].set_yticks(ticks=yticks, labels=yticks)
-        axes[row_number, 0].tick_params(labelsize=ftsize)
-        axes[row_number, 0].set_xlim([0, T*linear_sys.dt])
-        if cbf_type=='A':
-            axes[row_number, 0].set_ylim([-0.1, 4.8])
-        elif cbf_type=='B' or cbf_type=='C':
-            axes[row_number, 0].set_ylim([-0.1, 1.5])
-        axes[row_number, 0].yaxis.set_label_coords(-0.05, 0.5)
-        #axes[row_number, 0].grid()
+                axes[row_number, 3].set_xticks(ticks=xticks, labels=xticks)
+                axes[row_number, 3].set_yticks(ticks=yticks, labels=yticks)
+                axes[row_number, 3].set_ylabel('State $y$', fontsize=ftsize)
+                axes[row_number, 3].tick_params(labelsize=ftsize)
+                axes[row_number, 3].yaxis.set_label_coords(-0.05, 0.5)
+            else:
+                axes[row_number, 3].set_xlabel('Time (s)', fontsize=ftsize)
+                axes[row_number, 3].set_ylabel('Velocity x', fontsize=ftsize)
+                axes[row_number, 3].set_xlim(np.linspace(0, T*linear_sys.dt, 2))
+                axes[row_number, 3].set_ylim([0.0, 1.5])
+                
+                xvals = np.linspace(0, T*linear_sys.dt, 101)
+                yvals = cbf.vel_constraint_x * np.ones((101, ))
+                axes[row_number, 3].plot(xvals, yvals, 'k-')
+                
+                xticks = np.round(np.linspace(0, T*linear_sys.dt, 2), 2)
+                axes[row_number, 3].set_xticks(ticks=xticks, labels=xticks)
+                yticks = np.round(np.linspace(0.0, 1.5, 2), 2)
+                axes[row_number, 3].set_yticks(ticks=yticks, labels=yticks)
+                axes[row_number, 3].yaxis.set_label_coords(-0.05, 0.5)
 
-        #axes[row_number, 0, 1].plot(np.arange(0, T)*linear_sys.dt, unconstrained_controls, label='UnFiltered')
-        if row_number==nrows-1:
-            axes[row_number, 1].set_xlabel('Time (s)', fontsize=ftsize)
-            axes[row_number, 1].xaxis.set_label_coords(.5, -.05)
-            axes[row_number, 2].set_xlabel('Time (s)', fontsize=ftsize)
-            axes[row_number, 2].xaxis.set_label_coords(.5, -.05)
-        axes[row_number, 1].yaxis.set_label_coords(-0.05, 0.5)
-        axes[row_number, 2].yaxis.set_label_coords(-0.05, 0.5)
-
-        axes[row_number, 1].set_ylabel('Accel x', fontsize=ftsize)
-        #axes[row_number, 1].legend(fontsize=ftsize)
-        xticks = np.round(np.linspace(0, T*linear_sys.dt, 2), 2)
-        axes[row_number, 1].set_xticks(ticks=xticks, labels=xticks)
-        axes[row_number, 1].tick_params(labelsize=ftsize)
-        axes[row_number, 1].set_xlim([0, T*linear_sys.dt])
-
-        axes[row_number, 2].set_ylabel('Accel y', fontsize=ftsize)
-        #axes[row_number, 1].legend(fontsize=ftsize)
-        xticks = np.round(np.linspace(0, T*linear_sys.dt, 2), 2)
-        axes[row_number, 2].set_xticks(ticks=xticks, labels=xticks)
-        axes[row_number, 2].tick_params(labelsize=ftsize)
-        axes[row_number, 2].set_xlim([0, T*linear_sys.dt])
-
-        if cbf_type=='A':
-            axes[row_number, 1].set_ylim([-1.2, 1.2])
-            yticks = np.round(np.linspace(-1.0, 1.0, 2), 2)
-            axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks)
-            axes[row_number, 2].set_ylim([-3.2, 3.2])
-            yticks = np.round(np.linspace(-3.2, 3.2, 2), 2)
-            axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks)
-        elif cbf_type=='B':
-            axes[row_number, 1].set_ylim([-2.2, 2.2])
-            yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
-            axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks)
-            axes[row_number, 2].set_ylim([-2.2, 2.2])
-            yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
-            axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks)
-        elif cbf_type=='C':
-            axes[row_number, 1].set_ylim([-2.2, 2.2])
-            yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
-            axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks)
-            axes[row_number, 2].set_ylim([-2.2, 2.2])
-            yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
-            axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks)
-
-        ellipse = Ellipse(xy=cbf.c, width=2*cbf.beta/np.sqrt(cbf.P[0, 0]), height=2*cbf.beta/np.sqrt(cbf.P[1, 1]), 
-                                edgecolor='k', fc='None', lw=0.5)
-        axes[row_number, 3].add_patch(ellipse)
-
-        if cbf_type == 'B' or cbf_type=='C':
-            ellipse_pair = Ellipse(xy=cbf.c + cbf.shift, width=2*cbf.beta/np.sqrt(cbf.P[0, 0]), height=2*cbf.beta/np.sqrt(cbf.P[1, 1]), 
-                                    edgecolor='k', fc='None', lw=0.5)
-            axes[row_number, 3].add_patch(ellipse_pair)
-
-        if row_number==nrows-1:
-            axes[row_number, 3].set_xlabel('State $x$', fontsize=ftsize)
-            axes[row_number, 3].xaxis.set_label_coords(0.5, -.05)
-
-        if cbf_type=='A':        
-            axes[row_number, 3].set_xlim([-1.0, 2.5])
-            axes[row_number, 3].set_ylim([-1.2, 1.2])
-            xticks = np.round(np.linspace(-1, 2, 2), 2)
-            yticks = np.round(np.linspace(-1.2, 1.2, 2), 2)
-        elif cbf_type=='B':
-            axes[row_number, 3].set_xlim([-1.0, 2.5])
-            axes[row_number, 3].set_ylim([-3.5, 3.5])
-            xticks = np.round(np.linspace(-1, 2, 2), 2)
-            yticks = np.round(np.linspace(-3.5, 3.5, 2), 2)
-        elif cbf_type=='C':
-            axes[row_number, 3].set_xlim([-1.0, 2.5])
-            axes[row_number, 3].set_ylim([-3.5, 3.5])
-            xticks = np.round(np.linspace(-1, 2, 2), 2)
-            yticks = np.round(np.linspace(-3.5, 3.5, 2), 2)
-
-            xvals = np.linspace(-2.5, 3.5, 101)
-            yvals = cbf.line_constraint_x * np.ones((101, )) + 0.1*xvals
-            axes[row_number, 3].plot(xvals, yvals, 'k-')
-    
-        axes[row_number, 3].set_xticks(ticks=xticks, labels=xticks)
-        axes[row_number, 3].set_yticks(ticks=yticks, labels=yticks)
-        axes[row_number, 3].set_ylabel('State $y$', fontsize=ftsize)
-        axes[row_number, 3].tick_params(labelsize=ftsize)
-        axes[row_number, 3].yaxis.set_label_coords(-0.05, 0.5)
 
 #axes[2].grid()
 
@@ -441,4 +517,7 @@ else:
 # #axes[1, 1].set_ylim([-1.0, 1.0])
 # axes[1, 1].grid()
 
-plt.savefig(f'./linear_sys/cbf_2d_{cbf_type}_filtering_smooth_max.png', bbox_inches="tight")
+fig.savefig(f'./linear_sys/cbf_2d_{cbf_type}_filtering_smooth_max.png', bbox_inches="tight")
+if cbf_type=='D':
+    fig2.savefig(f'./linear_sys/cbf_2d_{cbf_type}_filtering_smooth_max_2.png', bbox_inches="tight")
+
