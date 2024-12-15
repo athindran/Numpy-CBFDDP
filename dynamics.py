@@ -128,7 +128,7 @@ class Bicycle4D(gym.Env):
         Function additionally integrates internal state.
         """
         assert action.shape[0]==self.action_dim
-        action[0] = np.clip(action[0], a_min=-1.0, a_max=1.0)
+        action[0] = np.clip(action[0], a_min=-2.0, a_max=2.0)
         action[1] = np.clip(action[1], a_min=-1.0, a_max=1.0)
         # ODE solver
         #print(obs, action)
@@ -185,6 +185,6 @@ class Bicycle4D(gym.Env):
         elif cbf_type == 'B':
             return np.array([[-1.0, 0.5, 1.0, 0.1]])
         elif cbf_type=='C':
-            return np.array([[-1.0, 0.1, 1.0, 0.6, 0.0]])
+            return np.array([[-1.0, 0.1, 1.0, 0.2]])
         elif cbf_type=='D':
             return np.array([[-1.0, 0.1, 1.0, 0.1, 0.0]])

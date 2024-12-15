@@ -157,7 +157,7 @@ class MultiCBF_c:
         self.P = np.diag([1.0, 1.5, 0.0, 0.0])
         self.c = np.zeros((4, 1))
         self.c[0 , 0] = 1.0
-        self.line_constraint_x = 1.5
+        self.line_constraint_x = 1.7
 
     def eval(self, state_x):
         """ 
