@@ -397,7 +397,7 @@ def main(cbf_type, sys_type='DI'):
     if enable_lr:
         print(f"Starting simulation for DDP-LR")
         cbf.use_smoothening = False
-        ddplr_dict = run_simulation(dyn_sys, cbf, cbf_type, T, method='ddplr', Rc=1e-3, horizon=40, gamma=0.0)
+        ddplr_dict = run_simulation(dyn_sys, cbf, cbf_type, T, method='ddplr', Rc=5e-2, horizon=40, gamma=0.0)
         ddplr_simulation_states = ddplr_dict['simulation_states']
         ddplr_cbf_states = ddplr_dict['cbf_states']
         ddplr_runtime = ddplr_dict['runtime']

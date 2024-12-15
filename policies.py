@@ -321,7 +321,7 @@ class DDPLRFilter:
                                                                                           initial_controls=boot_controls)
         boot_controls = np.array(solver_dict_plan_2['controls'])
 
-        if(solver_dict_plan_2['reachable_margin']>0.1):
+        if(solver_dict_plan_2['reachable_margin']>0.2):
             filtered_control = np.array( u_perf )
             self.reinit_controls = np.array( solver_dict_plan_2['controls'] )
         else:
@@ -329,7 +329,7 @@ class DDPLRFilter:
             filtered_control = np.array(control_safe_1)
             self.reinit_controls = np.array( boot_controls )
         
-        return filtered_control, solver_dict_plan_1["margin"]
+        return filtered_control, solver_dict_plan_1["reachable_margin"]
     
 class DDPCBFFilter:
     def __init__(self, state_dim: int, action_dim: int, marginFunc: CBF, env: gym.Env, horizon: int, Rc: float, gamma: float):
