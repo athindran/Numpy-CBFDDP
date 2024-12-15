@@ -359,7 +359,7 @@ def main(cbf_type, sys_type='DI'):
         nrows = 4
     elif cbf_type == 'D':
         cbf_params = cbf_d_params
-        T = 550
+        T = 650
         kappavals = [4.0, 3.0]
         enable_lr = False
         nrows = 2
@@ -509,7 +509,7 @@ def main(cbf_type, sys_type='DI'):
         fig2.savefig(f'./dyn_sys/cbf_2d_{cbf_type}_bic4d_filtering_smooth_max_2.png', bbox_inches="tight")
             
 if __name__ == "__main__":
-    for cbf_type in ['C']:
+    for cbf_type in ['D']:
         print(f"Starting simulation for {cbf_type}")
         main(cbf_type)
 
