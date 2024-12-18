@@ -264,7 +264,7 @@ class MultiCBF_c:
         if idx==0 or idx==1:
             return 2*self.P
         elif idx==2:
-            return 1e-3*np.eye(4)
+            return 1e-6*np.eye(4)
 
 
 class MultiCBF_d:
