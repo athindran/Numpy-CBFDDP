@@ -122,7 +122,7 @@ def set_up_plots_and_axes(axes, cbf_type, nrows, cbf, T, dyn_sys):
     axes[1].tick_params(labelsize=ftsize)
     axes[1].set_xlim([0, T*dyn_sys.dt])
 
-    axes[2].set_ylabel('Steer', fontsize=ftsize)
+    axes[2].set_ylabel('Steer gradient', fontsize=ftsize)
     #axes[1].legend(fontsize=ftsize)
     xticks = np.round(np.linspace(0, T*dyn_sys.dt, 2), 2)
     axes[2].set_xticks(ticks=xticks, labels=xticks)
@@ -130,8 +130,8 @@ def set_up_plots_and_axes(axes, cbf_type, nrows, cbf, T, dyn_sys):
     axes[2].set_xlim([0, T*dyn_sys.dt])
 
     if cbf_type=='A':
-        axes[1].set_ylim([-1.2, 1.2])
-        yticks = np.round(np.linspace(-1.0, 1.0, 2), 2)
+        axes[1].set_ylim([-1.7, 1.7])
+        yticks = np.round(np.linspace(-1.5, 1.5, 2), 2)
         axes[1].set_yticks(ticks=yticks, labels=yticks)
         axes[2].set_ylim([-3.2, 3.2])
         yticks = np.round(np.linspace(-3.0, 3.0, 2), 2)
@@ -226,7 +226,7 @@ def set_up_plots_and_axes_multiple_rows(axes, axeid, cbf_type, nrows, cbf, T, dy
         axes[row_number, 1].tick_params(labelsize=ftsize)
         axes[row_number, 1].set_xlim([0, T*dyn_sys.dt])
 
-        axes[row_number, 2].set_ylabel('Steer', fontsize=ftsize)
+        axes[row_number, 2].set_ylabel('Steer gradient', fontsize=ftsize)
         #axes[row_number, 1].legend(fontsize=ftsize)
         xticks = np.round(np.linspace(0, T*dyn_sys.dt, 2), 2)
         axes[row_number, 2].set_xticks(ticks=xticks, labels=xticks)
@@ -234,25 +234,25 @@ def set_up_plots_and_axes_multiple_rows(axes, axeid, cbf_type, nrows, cbf, T, dy
         axes[row_number, 2].set_xlim([0, T*dyn_sys.dt])
 
         if cbf_type=='A':
-            axes[row_number, 1].set_ylim([-1.2, 1.2])
-            yticks = np.round(np.linspace(-1.0, 1.0, 2), 2)
+            axes[row_number, 1].set_ylim([-1.7, 1.7])
+            yticks = np.round(np.linspace(-1.5, 1.5, 2), 2)
             axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks)
             axes[row_number, 2].set_ylim([-3.2, 3.2])
             yticks = np.round(np.linspace(-3.0, 3.0, 2), 2)
             axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks)
         elif cbf_type=='B' or cbf_type=='D':
-            axes[row_number, 1].set_ylim([-1.2, 1.2])
-            yticks = np.round(np.linspace(-1.0, 1.0, 2), 2)
+            axes[row_number, 1].set_ylim([-1.7, 1.7])
+            yticks = np.round(np.linspace(-1.5, 1.5, 2), 2)
             axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks)
             axes[row_number, 2].set_ylim([-3.2, 3.2])
             yticks = np.round(np.linspace(-3.0, 3.0, 2), 2)
             axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks)
         elif cbf_type=='C':
-            axes[row_number, 1].set_ylim([-2.2, 2.2])
-            yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
+            axes[row_number, 1].set_ylim([-1.7, 1.7])
+            yticks = np.round(np.linspace(-1.5, 1.5, 2), 2)
             axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks)
-            axes[row_number, 2].set_ylim([-2.2, 2.2])
-            yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
+            axes[row_number, 2].set_ylim([-3.2, 3.2])
+            yticks = np.round(np.linspace(-3.0, 3.0, 2), 2)
             axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks)
         
         if axeid == 0:
@@ -280,12 +280,12 @@ def set_up_plots_and_axes_multiple_rows(axes, axeid, cbf_type, nrows, cbf, T, dy
                 xticks = np.round(np.linspace(-1, 3, 2), 2)
                 yticks = np.round(np.linspace(-3.5, 3.5, 2), 2)
             elif cbf_type=='C':
-                axes[row_number, 3].set_xlim([-1.0, 2.5])
+                axes[row_number, 3].set_xlim([-1.0, 6.5])
                 axes[row_number, 3].set_ylim([-3.5, 3.5])
-                xticks = np.round(np.linspace(-1, 2, 2), 2)
+                xticks = np.round(np.linspace(-1, 6, 2), 2)
                 yticks = np.round(np.linspace(-3.5, 3.5, 2), 2)
 
-                xvals = np.linspace(-2.5, 3.5, 101)
+                xvals = np.linspace(-2.5, 6.5, 101)
                 yvals = cbf.line_constraint_x * np.ones((101, )) + 0.1*xvals
                 axes[row_number, 3].plot(xvals, yvals, 'k-')
 
@@ -312,8 +312,10 @@ def set_up_plots_and_axes_multiple_rows(axes, axeid, cbf_type, nrows, cbf, T, dy
 
 
 def get_action_perf(obs, cbf_type):
-    if cbf_type == 'A' or cbf_type == 'B' or cbf_type=='C':
+    if cbf_type == 'A':
         return np.array([1.0, 0.0])
+    elif cbf_type == 'B' or cbf_type=='C':
+        return np.array([1.0, -1.0*obs[3]])
     elif cbf_type == 'D':
         if obs[0]>=1.5:
             return np.array([0.5, 0.0])
@@ -353,8 +355,8 @@ def main(cbf_type, sys_type='DI'):
         nrows = 4
     elif cbf_type == 'C':
         cbf_params = cbf_c_params
-        T = 350
-        kappavals = [5.0, 4.0, 3.0, 2.0]
+        T = 300
+        kappavals = [4.0, 3.0, 1.0, 0.5]
         enable_lr = False
         nrows = 4
     elif cbf_type == 'D':
@@ -364,10 +366,10 @@ def main(cbf_type, sys_type='DI'):
         enable_lr = False
         nrows = 2
 
-    fig, axes = plt.subplots(nrows=nrows, ncols=4, sharey='col', sharex='col', figsize=(15.0, 3.5*nrows))
+    fig, axes = plt.subplots(nrows=nrows, ncols=4, sharey='col', sharex='col', figsize=(25.0, 3.5*nrows))
 
     if cbf_type == 'D':
-        fig2, axes2 = plt.subplots(nrows=nrows, ncols=4, sharey='col', sharex='col', figsize=(15.0, 3.5*nrows))
+        fig2, axes2 = plt.subplots(nrows=nrows, ncols=4, sharey='col', sharex='col', figsize=(25.0, 3.5*nrows))
     else:
         axes2 = None
 
@@ -509,7 +511,7 @@ def main(cbf_type, sys_type='DI'):
         fig2.savefig(f'./dyn_sys/cbf_2d_{cbf_type}_bic5d_filtering_smooth_max_2.png', bbox_inches="tight")
             
 if __name__ == "__main__":
-    for cbf_type in ['B']:
+    for cbf_type in ['A']:
         print(f"Starting simulation for {cbf_type}")
         main(cbf_type)
 

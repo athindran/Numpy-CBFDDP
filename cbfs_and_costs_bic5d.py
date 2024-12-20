@@ -49,7 +49,7 @@ class MultiCBF_b:
         Initialize CBF parameters.
         """
         self.beta = 0.6
-        self.shift = np.array([[0.2], [1.5], [0.0], [0.0], [0.0]])
+        self.shift = np.array([[0.2], [1.6], [0.0], [0.0], [0.0]])
         self.gamma = 0.9
         self.P = np.diag([1.0, 1.5, 0.0, 0.0, 0.0])
         self.c = np.zeros((5, 1))
@@ -152,18 +152,18 @@ class MultiCBF_c:
         Initialize CBF parameters.
         """
         self.beta = 0.5
-        self.shift = np.array([[0.2], [0.7], [0.0], [0.0]])
+        self.shift = np.array([[0.2], [0.7], [0.0], [0.0], [0.0]])
         self.gamma = 0.9
-        self.P = np.diag([1.0, 1.5, 0.0, 0.0])
-        self.c = np.zeros((4, 1))
-        self.c[0 , 0] = 1.0
-        self.line_constraint_x = 1.7
+        self.P = np.diag([1.0, 1.5, 0.0, 0.0, 0.0])
+        self.c = np.zeros((5, 1))
+        self.c[0 , 0] = 2.0
+        self.line_constraint_x = 2.0
 
     def eval(self, state_x):
         """ 
         Evaluate CBF from one dimensional state array.
         """
-        assert state_x.shape == (4, )
+        assert state_x.shape == (5, )
         state_x_m = state_x[:, np.newaxis]
 
         h1 = (state_x_m - self.c).T @ self.P @ (state_x_m - self.c) - self.beta
@@ -180,7 +180,7 @@ class MultiCBF_c:
         """ 
         Evaluate CBF from one dimensional state array.
         """
-        assert state_x.shape == (4, )
+        assert state_x.shape == (5, )
         state_x_m = state_x.ravel() 
         state_x_m = state_x_m[:, np.newaxis]
         h1 = (state_x_m - self.c).T @ self.P @ (state_x_m - self.c) - self.beta
@@ -198,13 +198,13 @@ class MultiCBF_c:
         """
         Return CBF derivative.
         """
-        assert state_x.shape == (4, )
+        assert state_x.shape == (5, )
         state_x_m = state_x.ravel() 
         state_x_m = state_x_m[:, np.newaxis]
         
         dh1dx = 2*(state_x_m - self.c).T @ self.P
         dh2dx = 2*(state_x_m - self.c - self.shift).T @ self.P
-        dh3dx = np.array([[0.1, -1.0, 0.0, 0.0]])
+        dh3dx = np.array([[0.1, -1.0, 0.0, 0.0, 0.0]])
         if self.use_smoothening:
             h1 = (state_x_m - self.c).T @ self.P @ (state_x_m - self.c) - self.beta
             h2 = (state_x_m - (self.c + self.shift)).T @ self.P @ (state_x_m - (self.c + self.shift)) - self.beta
@@ -233,14 +233,14 @@ class MultiCBF_c:
         """
         Return CBF second derivative
         """
-        assert state_x.shape == (4, )
+        assert state_x.shape == (5, )
         state_x_m = state_x.ravel() 
         state_x_m = state_x_m[:, np.newaxis]
 
         if self.use_smoothening:
             dh1dx = 2*(state_x_m - self.c).T @ self.P
             dh2dx = 2*(state_x_m - self.c - self.shift).T @ self.P
-            dh3dx = np.array([[0.1, -1.0, 0.0, 0.0]])
+            dh3dx = np.array([[0.1, -1.0, 0.0, 0.0, 0.0]])
             h1 = (state_x_m - self.c).T @ self.P @ (state_x_m - self.c) - self.beta
             h2 = (state_x_m - (self.c + self.shift)).T @ self.P @ (state_x_m - (self.c + self.shift)) - self.beta
             h3 = np.array([[self.line_constraint_x - state_x_m[1, 0] + 0.1*state_x_m[0, 0]]])
@@ -264,7 +264,7 @@ class MultiCBF_c:
         if idx==0 or idx==1:
             return 2*self.P
         elif idx==2:
-            return 1e-6*np.eye(4)
+            return 1e-6*np.eye(5)
 
 
 class MultiCBF_d:
