@@ -15,7 +15,7 @@ from matplotlib.colors import LinearSegmentedColormap, ListedColormap
 
 viridis = mpl.colormaps['viridis'].resampled(8)
 
-def run_simulation(dyn_sys, cbf, cbf_type, T, method=None, Rc=None, horizon=None, gamma=None):
+def run_simulation(dyn_sys, cbf, cbf_type, T, method=None, Rc=None, horizon=None, gamma=None, scaling_factor=None):
     obs = dyn_sys.reset(cbf_type)
 
     simulation_states = np.zeros((5, T))
@@ -27,7 +27,7 @@ def run_simulation(dyn_sys, cbf, cbf_type, T, method=None, Rc=None, horizon=None
 
     if method == 'ddpcbf':
         ddpcbf = DDPCBFFilter(5, 2, copy.deepcopy(cbf), copy.deepcopy(dyn_sys), 
-                                horizon=horizon, Rc=Rc, gamma=gamma)
+                                horizon=horizon, Rc=Rc, gamma=gamma, scaling_factor=scaling_factor)
     elif method == 'ddplr':
         ddplr = DDPLRFilter(5, 2, copy.deepcopy(cbf), copy.deepcopy(dyn_sys), 
                                 horizon=horizon, Rc=Rc)
@@ -96,7 +96,7 @@ def set_up_plots_and_axes(axes, cbf_type, nrows, cbf, T, dyn_sys):
     
     xticks = np.round(np.linspace(0, T*dyn_sys.dt, 2), 2)
     axes[0].set_xticks(ticks=xticks, labels=xticks)
-    yticks = np.round(np.linspace(0.0, 1.2, 2), 2)
+    yticks = np.round(np.linspace(0.0, 4.0, 2), 2)
     axes[0].set_yticks(ticks=yticks, labels=yticks)
     axes[0].tick_params(labelsize=ftsize)
     axes[0].set_xlim([0, T*dyn_sys.dt])
@@ -199,14 +199,16 @@ def set_up_plots_and_axes_multiple_rows(axes, axeid, cbf_type, nrows, cbf, T, dy
         
         xticks = np.round(np.linspace(0, T*dyn_sys.dt, 2), 2)
         axes[row_number, 0].set_xticks(ticks=xticks, labels=xticks)
-        yticks = np.round(np.linspace(0.0, 1.2, 2), 2)
-        axes[row_number, 0].set_yticks(ticks=yticks, labels=yticks)
         axes[row_number, 0].tick_params(labelsize=ftsize)
         axes[row_number, 0].set_xlim([0, T*dyn_sys.dt])
-        if cbf_type=='A' or cbf_type=='E':
+        if cbf_type=='A':
             axes[row_number, 0].set_ylim([-0.1, 4.8])
-        elif cbf_type=='B' or cbf_type=='C' or cbf_type=='D':
+            yticks = np.round(np.linspace(0.0, 4.0, 2), 2)
+        elif cbf_type=='B' or cbf_type=='C' or cbf_type=='D' or cbf_type=='E':
             axes[row_number, 0].set_ylim([-0.1, 1.5])
+            yticks = np.round(np.linspace(0.0, 1.2, 2), 2)
+
+        axes[row_number, 0].set_yticks(ticks=yticks, labels=yticks)
         axes[row_number, 0].yaxis.set_label_coords(-0.05, 0.5)
         #axes[row_number, 0].grid()
 
@@ -343,11 +345,11 @@ def main(cbf_type, sys_type='DI'):
     else:
         cbf = None
 
-    cbf_a_params = {'kappa':1.0, 'gamma':0.95, 'Rc':5e-2, 'horizon':40}
-    cbf_b_params = {'kappa':1.0, 'gamma':0.95, 'Rc':5e-2, 'horizon':40}
-    cbf_c_params = {'kappa':1.0, 'gamma':0.99, 'Rc':5e-2, 'horizon':40}
-    cbf_d_params = {'kappa':1.0, 'gamma':0.96, 'Rc':5e-2, 'horizon':40}
-    cbf_e_params = {'kappa':1.0, 'gamma':0.96, 'Rc':5e-2, 'horizon':40}
+    cbf_a_params = {'kappa':1.0, 'gamma':0.95, 'Rc':5e-2, 'ddpcbf_iteration_scale': 0.5, 'horizon':40}
+    cbf_b_params = {'kappa':1.0, 'gamma':0.95, 'Rc':5e-2, 'ddpcbf_iteration_scale': 0.5, 'horizon':40}
+    cbf_c_params = {'kappa':1.0, 'gamma':0.99, 'Rc':5e-2, 'ddpcbf_iteration_scale': 0.5, 'horizon':40}
+    cbf_d_params = {'kappa':1.0, 'gamma':0.96, 'Rc':5e-2, 'ddpcbf_iteration_scale': 0.5, 'horizon':40}
+    cbf_e_params = {'kappa':1.0, 'gamma':0.96, 'Rc':5e-2, 'ddpcbf_iteration_scale': 1.5, 'horizon':40}
 
     if cbf_type == 'A':
         cbf_params = cbf_a_params
@@ -435,7 +437,7 @@ def main(cbf_type, sys_type='DI'):
 
     print(f"Starting simulation for DDP-CBF HM")
     cbf.use_smoothening = False
-    ddpcbf_dict = run_simulation(dyn_sys, cbf, cbf_type, T, method='ddpcbf', Rc=cbf_params['Rc'], horizon=cbf_params['horizon'], gamma=cbf_params['gamma'])
+    ddpcbf_dict = run_simulation(dyn_sys, cbf, cbf_type, T, method='ddpcbf', Rc=cbf_params['Rc'], horizon=cbf_params['horizon'], gamma=cbf_params['gamma'], scaling_factor=cbf_params['ddpcbf_iteration_scale'])
     ddpcbf_simulation_states = ddpcbf_dict['simulation_states']
     ddpcbf_cbf_states = ddpcbf_dict['cbf_states']
     ddpcbf_runtime = ddpcbf_dict['runtime']
@@ -478,7 +480,8 @@ def main(cbf_type, sys_type='DI'):
     for kiter, kappa in enumerate(kappavals):
         print(f"Starting simulation for DDP-CBF SM kappa={kappa}")
         cbf.kappa = kappa
-        ddpcbf_smooth_dict = run_simulation(dyn_sys, cbf, cbf_type, T, method='ddpcbf', Rc=cbf_params['Rc'], horizon=cbf_params['horizon'], gamma=cbf_params['gamma'])
+        ddpcbf_smooth_dict = run_simulation(dyn_sys, cbf, cbf_type, T, method='ddpcbf', Rc=cbf_params['Rc'], horizon=cbf_params['horizon'], 
+                                                gamma=cbf_params['gamma'], scaling_factor=cbf_params['ddpcbf_iteration_scale'])
         ddpcbf_smooth_simulation_states = ddpcbf_smooth_dict['simulation_states']
         ddpcbf_smooth_cbf_states = ddpcbf_smooth_dict['cbf_states']
         ddpcbf_smooth_runtime = ddpcbf_smooth_dict['runtime']

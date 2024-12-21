@@ -27,7 +27,7 @@ def run_simulation(dyn_sys, cbf, cbf_type, T, method=None, Rc=None, horizon=None
 
     if method == 'ddpcbf':
         ddpcbf = DDPCBFFilter(4, 2, copy.deepcopy(cbf), copy.deepcopy(dyn_sys), 
-                                horizon=horizon, Rc=Rc, gamma=gamma)
+                                horizon=horizon, Rc=Rc, gamma=gamma, scaling_factor=0.4)
     elif method == 'ddplr':
         ddplr = DDPLRFilter(4, 2, copy.deepcopy(cbf), copy.deepcopy(dyn_sys), 
                                 horizon=horizon, Rc=Rc)
@@ -320,7 +320,7 @@ def get_action_perf(obs, cbf_type):
         else:
             return np.array([-1.0, 0.0])
 
-def main(cbf_type, sys_type='DI'):
+def main(cbf_type):
     dyn_sys = Bicycle4D()
 
     if cbf_type == 'A':
@@ -509,7 +509,7 @@ def main(cbf_type, sys_type='DI'):
         fig2.savefig(f'./dyn_sys/cbf_2d_{cbf_type}_bic4d_filtering_smooth_max_2.png', bbox_inches="tight")
             
 if __name__ == "__main__":
-    for cbf_type in ['A']:
+    for cbf_type in ['A', 'B', 'C', 'D']:
         print(f"Starting simulation for {cbf_type}")
         main(cbf_type)
 

@@ -96,7 +96,6 @@ class ReachabilityLQPolicy:
         self.tol = 1e-6
         self.eps = 1e-6
         self.max_iters = 30
-        self.line_search = "baseline"
     
     def initialize_trajectory(self, obs: np.ndarray, nominal_controls:np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         nominal_states = np.zeros((self.horizon + 1, self.state_dim))
@@ -233,9 +232,8 @@ class ReachabilityLQPolicy:
                 V_xx[t] = Q_xx[t] + Q_ux[t].T @ K_closed_loop[t]
             t = t - 1
         
-        self.Q_u = Q_u 
         barrier_constraint_data = {"V_xx": V_xx[0], "V_x": V_x[0], "V_xx_critical": V_xx_critical, 
-                                   "V_x_critical": V_x_critical, "V_t": margins[0], "state_margins": state_margins}        
+                                   "V_x_critical": V_x_critical, "V_t": margins[0], "state_margins": state_margins, "Q_u": Q_u}        
             
         return K_closed_loop, k_open_loop, barrier_constraint_data
     
@@ -262,10 +260,11 @@ class ReachabilityLQPolicy:
         while iters<self.max_iters and not converged:
             iters = iters + 1
             # Backward pass
-            K_closed_loop, k_open_loop, _ = self.backward_pass(states, controls)
+            K_closed_loop, k_open_loop, barrier_constraint_data = self.backward_pass(states, controls)
             
             # Choose the best alpha scaling using appropriate line search methods
-            alpha_chosen = self.baseline_line_search( states, controls, K_closed_loop, k_open_loop, critical_margin, J )
+            #alpha_chosen = self.baseline_line_search( states, controls, K_closed_loop, k_open_loop, critical_margin, J )
+            alpha_chosen = self.armijo_line_search( states, controls, K_closed_loop, k_open_loop, critical_margin, J, barrier_constraint_data['Q_u'])
             
             if alpha_chosen<1e-15:
                 J_new = J
@@ -302,6 +301,36 @@ class ReachabilityLQPolicy:
             alpha = beta*alpha
 
         return alpha
+
+    def armijo_line_search(self, states, controls, K_closed_loop, k_open_loop, critical, J, Q_u, beta=0.7):
+        # Armijo only condition - Wolfe condition is not implemented.
+        alpha = 2.0
+
+        alpha_converged = False
+
+        while not alpha_converged:
+            X, _, J_new, _, _, critical_index = self.forward_pass(
+                states, controls, K_closed_loop, k_open_loop, alpha)
+
+            # cu is zero so we propagate cx one step back and use Qu as
+            # gradient
+            grad_u = Q_u[critical_index - 1]
+            
+            delta_u = K_closed_loop[critical_index - 1] @ (
+                X[critical_index - 1] - states[critical_index - 1]) + alpha * k_open_loop[critical_index - 1]
+
+            t = 0.5 * grad_u @ delta_u.ravel()
+
+            if J_new - t * alpha >= J:
+                alpha_converged = True
+                return alpha
+            else:
+                # Reduce alpha and check for decrease condition
+                alpha = beta * alpha
+                if alpha < 1e-15:
+                    # Stop iterating here
+                    return alpha
+
     
 class DDPLRFilter:
     def __init__(self, state_dim: int, action_dim: int, marginFunc: CBF, env: gym.Env, horizon = 50, Rc=1e-5):
@@ -332,13 +361,14 @@ class DDPLRFilter:
         return filtered_control, solver_dict_plan_1["reachable_margin"]
     
 class DDPCBFFilter:
-    def __init__(self, state_dim: int, action_dim: int, marginFunc: CBF, env: gym.Env, horizon: int, Rc: float, gamma: float):
+    def __init__(self, state_dim: int, action_dim: int, marginFunc: CBF, env: gym.Env, horizon: int, Rc: float, gamma: float, scaling_factor: float):
         self.rollout_policy_1 =  ReachabilityLQPolicy(state_dim=state_dim, action_dim=action_dim, marginFunc=marginFunc, 
                                                       env=copy.deepcopy(env), horizon=horizon, Rc=Rc)
         self.rollout_policy_2 =  ReachabilityLQPolicy(state_dim=state_dim, action_dim=action_dim, marginFunc=marginFunc, 
                                                       env=copy.deepcopy(env), horizon=horizon, Rc=Rc)
         self.reinit_controls = np.zeros((horizon, action_dim))
         self.gamma = gamma
+        self.scaling_factor = scaling_factor
         self.action_dim = action_dim
 
     def apply_filter(self, state_x, u_perf, linear_sys, initialize):
@@ -360,7 +390,7 @@ class DDPCBFFilter:
         eps_regularization = 1e-6
 
         constraint_violation = solver_dict_plan_2['reachable_margin'] - self.gamma*solver_dict_plan_1['reachable_margin']
-        scaling_factor = 1.5
+        scaling_factor = self.scaling_factor
         scaled_c = scaling_factor*constraint_violation 
         p = Bd.T @ constraints_data_plan_2['V_x']
         P = -eps_regularization * \
