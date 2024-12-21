@@ -262,4 +262,4 @@ class Bicycle5D(gym.Env):
         elif cbf_type=='C':
             return np.array([[-1.0, 0.1, 2.0, 0.2, 0.0]])
         elif cbf_type=='D':
-            return np.array([[-1.0, 0.1, 1.0, 0.2, 0.0]])
+            return np.array([[-1.0, 0.1, 2.0, 0.2, 0.0]])

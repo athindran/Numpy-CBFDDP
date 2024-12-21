@@ -318,9 +318,9 @@ def get_action_perf(obs, cbf_type):
         return np.array([1.0, -1.0*obs[3]])
     elif cbf_type == 'D':
         if obs[0]>=1.5:
-            return np.array([0.5, 0.0])
+            return np.array([0.5, -1.0*obs[3]])
         else:
-            return np.array([-1.0, 0.0])
+            return np.array([-1.0, -1.0*obs[3]])
 
 def main(cbf_type, sys_type='DI'):
     dyn_sys = Bicycle5D()
@@ -339,7 +339,7 @@ def main(cbf_type, sys_type='DI'):
     cbf_a_params = {'kappa':1.0, 'gamma':0.95, 'Rc':5e-2, 'horizon':40}
     cbf_b_params = {'kappa':1.0, 'gamma':0.95, 'Rc':5e-2, 'horizon':40}
     cbf_c_params = {'kappa':1.0, 'gamma':0.99, 'Rc':5e-2, 'horizon':40}
-    cbf_d_params = {'kappa':1.0, 'gamma':0.99, 'Rc':5e-2, 'horizon':40}
+    cbf_d_params = {'kappa':1.0, 'gamma':0.96, 'Rc':5e-2, 'horizon':40}
 
     if cbf_type == 'A':
         cbf_params = cbf_a_params
@@ -361,7 +361,7 @@ def main(cbf_type, sys_type='DI'):
         nrows = 4
     elif cbf_type == 'D':
         cbf_params = cbf_d_params
-        T = 650
+        T = 550
         kappavals = [4.0, 3.0]
         enable_lr = False
         nrows = 2
@@ -511,7 +511,7 @@ def main(cbf_type, sys_type='DI'):
         fig2.savefig(f'./dyn_sys/cbf_2d_{cbf_type}_bic5d_filtering_smooth_max_2.png', bbox_inches="tight")
             
 if __name__ == "__main__":
-    for cbf_type in ['A']:
+    for cbf_type in ['D']:
         print(f"Starting simulation for {cbf_type}")
         main(cbf_type)
 
