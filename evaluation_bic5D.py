@@ -7,7 +7,7 @@ import matplotlib.lines as mlines
 import numpy as np
 import copy
 
-from cbfs_and_costs_bic5d import CBF, MultiCBF_b, MultiCBF_c, MultiCBF_d
+from cbfs_and_costs_bic5d import CBF, MultiCBF_b, MultiCBF_c, MultiCBF_d, MultiCBF_e
 from policies import ReachabilityLQPolicy, DDPCBFFilter, DDPLRFilter
 from dynamics import Bicycle5D
 import matplotlib as mpl
@@ -100,7 +100,7 @@ def set_up_plots_and_axes(axes, cbf_type, nrows, cbf, T, dyn_sys):
     axes[0].set_yticks(ticks=yticks, labels=yticks)
     axes[0].tick_params(labelsize=ftsize)
     axes[0].set_xlim([0, T*dyn_sys.dt])
-    if cbf_type=='A':
+    if cbf_type=='A' or cbf_type=='E':
         axes[0].set_ylim([-0.1, 4.8])
     elif cbf_type=='B' or cbf_type=='C':
         axes[0].set_ylim([-0.1, 1.5])
@@ -129,7 +129,7 @@ def set_up_plots_and_axes(axes, cbf_type, nrows, cbf, T, dyn_sys):
     axes[2].tick_params(labelsize=ftsize)
     axes[2].set_xlim([0, T*dyn_sys.dt])
 
-    if cbf_type=='A':
+    if cbf_type=='A' or cbf_type=='E':
         axes[1].set_ylim([-1.7, 1.7])
         yticks = np.round(np.linspace(-1.5, 1.5, 2), 2)
         axes[1].set_yticks(ticks=yticks, labels=yticks)
@@ -160,7 +160,7 @@ def set_up_plots_and_axes(axes, cbf_type, nrows, cbf, T, dyn_sys):
     axes[3].set_xlabel('State $x$', fontsize=ftsize)
     axes[3].xaxis.set_label_coords(0.5, -.05)
 
-    if cbf_type=='A':        
+    if cbf_type=='A' or cbf_type=='E':      
         axes[3].set_xlim([-1.0, 2.5])
         axes[3].set_ylim([-1.2, 1.2])
         xticks = np.round(np.linspace(-1, 2, 2), 2)
@@ -203,7 +203,7 @@ def set_up_plots_and_axes_multiple_rows(axes, axeid, cbf_type, nrows, cbf, T, dy
         axes[row_number, 0].set_yticks(ticks=yticks, labels=yticks)
         axes[row_number, 0].tick_params(labelsize=ftsize)
         axes[row_number, 0].set_xlim([0, T*dyn_sys.dt])
-        if cbf_type=='A':
+        if cbf_type=='A' or cbf_type=='E':
             axes[row_number, 0].set_ylim([-0.1, 4.8])
         elif cbf_type=='B' or cbf_type=='C' or cbf_type=='D':
             axes[row_number, 0].set_ylim([-0.1, 1.5])
@@ -233,7 +233,7 @@ def set_up_plots_and_axes_multiple_rows(axes, axeid, cbf_type, nrows, cbf, T, dy
         axes[row_number, 2].tick_params(labelsize=ftsize)
         axes[row_number, 2].set_xlim([0, T*dyn_sys.dt])
 
-        if cbf_type=='A':
+        if cbf_type=='A' or cbf_type=='E':
             axes[row_number, 1].set_ylim([-1.7, 1.7])
             yticks = np.round(np.linspace(-1.5, 1.5, 2), 2)
             axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks)
@@ -269,7 +269,7 @@ def set_up_plots_and_axes_multiple_rows(axes, axeid, cbf_type, nrows, cbf, T, dy
                 axes[row_number, 3].set_xlabel('State $x$', fontsize=ftsize)
                 axes[row_number, 3].xaxis.set_label_coords(0.5, -.05)
 
-            if cbf_type=='A':        
+            if cbf_type=='A':
                 axes[row_number, 3].set_xlim([-1.0, 3.5])
                 axes[row_number, 3].set_ylim([-1.2, 1.2])
                 xticks = np.round(np.linspace(-1, 3, 2), 2)
@@ -288,6 +288,11 @@ def set_up_plots_and_axes_multiple_rows(axes, axeid, cbf_type, nrows, cbf, T, dy
                 xvals = np.linspace(-2.5, 6.5, 101)
                 yvals = cbf.line_constraint_x * np.ones((101, )) + 0.1*xvals
                 axes[row_number, 3].plot(xvals, yvals, 'k-')
+            elif cbf_type == 'E':
+                axes[row_number, 3].set_xlim([-1.0, 3.5])
+                axes[row_number, 3].set_ylim([-1.2, 1.2])
+                xticks = np.round(np.linspace(-1, 3, 2), 2)
+                yticks = np.round(np.linspace(-1.2, 1.2, 2), 2)
 
             axes[row_number, 3].set_xticks(ticks=xticks, labels=xticks)
             axes[row_number, 3].set_yticks(ticks=yticks, labels=yticks)
@@ -314,7 +319,7 @@ def set_up_plots_and_axes_multiple_rows(axes, axeid, cbf_type, nrows, cbf, T, dy
 def get_action_perf(obs, cbf_type):
     if cbf_type == 'A':
         return np.array([1.0, 0.0])
-    elif cbf_type == 'B' or cbf_type=='C':
+    elif cbf_type == 'B' or cbf_type=='C' or cbf_type == 'E':
         return np.array([1.0, -1.0*obs[3]])
     elif cbf_type == 'D':
         if obs[0]>=1.5:
@@ -333,6 +338,8 @@ def main(cbf_type, sys_type='DI'):
         cbf = MultiCBF_c()
     elif cbf_type == 'D':
         cbf = MultiCBF_d() 
+    elif cbf_type == 'E':
+        cbf = MultiCBF_e()
     else:
         cbf = None
 
@@ -340,6 +347,7 @@ def main(cbf_type, sys_type='DI'):
     cbf_b_params = {'kappa':1.0, 'gamma':0.95, 'Rc':5e-2, 'horizon':40}
     cbf_c_params = {'kappa':1.0, 'gamma':0.99, 'Rc':5e-2, 'horizon':40}
     cbf_d_params = {'kappa':1.0, 'gamma':0.96, 'Rc':5e-2, 'horizon':40}
+    cbf_e_params = {'kappa':1.0, 'gamma':0.96, 'Rc':5e-2, 'horizon':40}
 
     if cbf_type == 'A':
         cbf_params = cbf_a_params
@@ -365,6 +373,13 @@ def main(cbf_type, sys_type='DI'):
         kappavals = [4.0, 3.0]
         enable_lr = False
         nrows = 2
+    elif cbf_type == 'E':
+        cbf_params = cbf_e_params
+        T = 150
+        kappavals = [5.0, 4.0]
+        enable_lr = False
+        nrows = 2
+
 
     fig, axes = plt.subplots(nrows=nrows, ncols=4, sharey='col', sharex='col', figsize=(25.0, 3.5*nrows))
 
@@ -480,6 +495,8 @@ def main(cbf_type, sys_type='DI'):
             #axes[kiter, 0].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
             if cbf_type == 'D':
                 axes[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}' + ' with velocity constraint ', fontsize=12)
+            elif cbf_type == 'E':
+                axes[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}' + ' with yaw constraint ', fontsize=12)
             else:
                 axes[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=16)
             #axes[kiter, 2].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
@@ -493,6 +510,8 @@ def main(cbf_type, sys_type='DI'):
                 #axes[kiter, 0].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
                 if cbf_type == 'D':
                     axes2[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}' + ' velocity constraint ', fontsize=12)
+                elif cbf_type == 'E':
+                    axes[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}' + ' with yaw constraint ', fontsize=12)
                 else:
                     axes2[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=16)            
                     #axes[kiter, 2].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
@@ -511,7 +530,7 @@ def main(cbf_type, sys_type='DI'):
         fig2.savefig(f'./dyn_sys/cbf_2d_{cbf_type}_bic5d_filtering_smooth_max_2.png', bbox_inches="tight")
             
 if __name__ == "__main__":
-    for cbf_type in ['D']:
+    for cbf_type in ['E']:
         print(f"Starting simulation for {cbf_type}")
         main(cbf_type)
 

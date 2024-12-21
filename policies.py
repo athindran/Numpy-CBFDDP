@@ -360,7 +360,7 @@ class DDPCBFFilter:
         eps_regularization = 1e-6
 
         constraint_violation = solver_dict_plan_2['reachable_margin'] - self.gamma*solver_dict_plan_1['reachable_margin']
-        scaling_factor = 0.5
+        scaling_factor = 1.5
         scaled_c = scaling_factor*constraint_violation 
         p = Bd.T @ constraints_data_plan_2['V_x']
         P = -eps_regularization * \
