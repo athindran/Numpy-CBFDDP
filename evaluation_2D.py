@@ -27,7 +27,7 @@ def run_simulation(dyn_sys, cbf, cbf_type, T, method=None, Rc=None, horizon=None
 
     if method == 'ddpcbf':
         ddpcbf = DDPCBFFilter(4, 2, copy.deepcopy(cbf), copy.deepcopy(dyn_sys), 
-                                horizon=horizon, Rc=Rc, gamma=gamma)
+                                horizon=horizon, Rc=Rc, gamma=gamma, scaling_factor=0.3)
     elif method == 'ddplr':
         ddplr = DDPLRFilter(4, 2, copy.deepcopy(cbf), copy.deepcopy(dyn_sys), 
                                 horizon=horizon, Rc=Rc)
@@ -86,7 +86,7 @@ def run_simulation(dyn_sys, cbf, cbf_type, T, method=None, Rc=None, horizon=None
     return output_dict
 
 def set_up_plots_and_axes(axes, cbf_type, nrows, cbf, T, dyn_sys):
-    ftsize=13
+    ftsize=15
     axes[0].set_xlabel('Time (s)', fontsize=ftsize)
     axes[0].xaxis.set_label_coords(.5, -.05)
     axes[0].plot(np.arange(0, T)*dyn_sys.dt, [[0]]*T)
@@ -186,7 +186,7 @@ def set_up_plots_and_axes(axes, cbf_type, nrows, cbf, T, dyn_sys):
     axes[3].yaxis.set_label_coords(-0.05, 0.5)
 
 def set_up_plots_and_axes_multiple_rows(axes, axeid, cbf_type, nrows, cbf, T, dyn_sys):
-    ftsize=13
+    ftsize=15
     for row_number in range(nrows):
         if row_number==nrows-1:
             axes[row_number, 0].set_xlabel('Time (s)', fontsize=ftsize)
@@ -364,10 +364,31 @@ def main(cbf_type, sys_type='DI'):
         enable_lr = False
         nrows = 2
 
-    fig, axes = plt.subplots(nrows=nrows, ncols=4, sharey='col', sharex='col', figsize=(15.0, 3.5*nrows))
+    #fig, axes = plt.subplots(nrows=nrows, ncols=4, sharey='col', sharex='col', figsize=(14.0, 3.5*nrows))
+    fig = plt.figure(figsize=(17.0, 3.7*nrows))
+    subfigs = fig.subfigures(nrows=nrows, ncols=1)
+    axes = []
+    for row_number, subfig in enumerate(subfigs):
+        kappa = kappavals[row_number]
+        if cbf_type=='D':
+            subfig.suptitle(f'CBFDDP-SM $\kappa=${kappa} with velocity constraint', fontsize=20)
+        else:
+            subfig.suptitle(f'CBFDDP-SM $\kappa=${kappa}', fontsize=20)
+
+        axs_row = subfig.subplots(nrows=1, ncols=4)
+        axes.append(axs_row)
+    axes = np.array(axes)
 
     if cbf_type == 'D':
-        fig2, axes2 = plt.subplots(nrows=nrows, ncols=4, sharey='col', sharex='col', figsize=(15.0, 3.5*nrows))
+        axes2 = []
+        fig2 = plt.figure(figsize=(15.0, 3.7*nrows))
+        subfigs2 = fig2.subfigures(nrows=nrows, ncols=1)
+
+        for row_number, subfig in enumerate(subfigs2):
+            subfig.suptitle(f'CBFDDP-SM  $\kappa=${kappa} with velocity constraint', fontsize=20)
+            axs_row = subfig.subplots(nrows=1, ncols=4)
+            axes2.append(axs_row)
+        axes2 = np.array(axes2)
     else:
         axes2 = None
 
@@ -477,9 +498,9 @@ def main(cbf_type, sys_type='DI'):
             axes[kiter, 3].plot(ddpcbf_smooth_simulation_states[0, :], ddpcbf_smooth_simulation_states[1, :], label=label_tag, color='b', alpha=alphas[kiter], linewidth=lw)
             #axes[kiter, 0].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
             if cbf_type == 'D':
-                axes[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}' + ' with velocity constraint ', fontsize=12)
+                axes[kiter, 0].set_ylabel(f'CBFDDP-SM $\kappa=${kappa}' + ' with velocity constraint ', fontsize=13)
             else:
-                axes[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=16)
+                axes[kiter, 0].set_ylabel(f'CBFDDP-SM $\kappa=${kappa}', fontsize=16)
             #axes[kiter, 2].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
 
             if axes2 is not None:
@@ -490,9 +511,9 @@ def main(cbf_type, sys_type='DI'):
                 axes2[kiter, 3].plot(np.arange(0, ddpcbf_smooth_runtime)*dyn_sys.dt, ddpcbf_smooth_simulation_states[2, :], label=label_tag, color='b', alpha=alphas[kiter], linewidth=lw)
                 #axes[kiter, 0].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
                 if cbf_type == 'D':
-                    axes2[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}' + ' velocity constraint ', fontsize=12)
+                    axes2[kiter, 0].set_ylabel(f'CBFDDP-SM $\kappa=${kappa}' + ' velocity constraint ', fontsize=13)
                 else:
-                    axes2[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=16)            
+                    axes2[kiter, 0].set_ylabel(f'CBFDDP-SM $\kappa=${kappa}', fontsize=16)            
                     #axes[kiter, 2].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
 
 
@@ -504,9 +525,9 @@ def main(cbf_type, sys_type='DI'):
                 continue
             set_up_plots_and_axes_multiple_rows(axes_c, axeid, cbf_type, nrows, cbf, T, dyn_sys)
 
-    fig.savefig(f'./dyn_sys/cbf_2d_{cbf_type}_filtering_smooth_max.png', bbox_inches="tight")
+    fig.savefig(f'./dyn_sys/cbf_2d_DI_{cbf_type}_filtering_smooth_max.png', bbox_inches="tight")
     if cbf_type=='D':
-        fig2.savefig(f'./dyn_sys/cbf_2d_{cbf_type}_filtering_smooth_max_2.png', bbox_inches="tight")
+        fig2.savefig(f'./dyn_sys/cbf_2d_DI_{cbf_type}_filtering_smooth_max_2.png', bbox_inches="tight")
             
 if __name__ == "__main__":
     for cbf_type in ['B', 'C', 'D']:

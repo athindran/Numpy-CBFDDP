@@ -263,8 +263,8 @@ class ReachabilityLQPolicy:
             K_closed_loop, k_open_loop, barrier_constraint_data = self.backward_pass(states, controls)
             
             # Choose the best alpha scaling using appropriate line search methods
-            #alpha_chosen = self.baseline_line_search( states, controls, K_closed_loop, k_open_loop, critical_margin, J )
-            alpha_chosen = self.armijo_line_search( states, controls, K_closed_loop, k_open_loop, critical_margin, J, barrier_constraint_data['Q_u'])
+            alpha_chosen = self.baseline_line_search( states, controls, K_closed_loop, k_open_loop, critical_margin, J )
+            #alpha_chosen = self.armijo_line_search( states, controls, K_closed_loop, k_open_loop, critical_margin, J, barrier_constraint_data['Q_u'])
             
             if alpha_chosen<1e-15:
                 J_new = J
@@ -398,7 +398,7 @@ class DDPCBFFilter:
         p_norm = np.linalg.norm(p)
         barrier_entries = 0
         control_bias_term = np.zeros((self.action_dim,))
-        while constraint_violation<=-1e-4 and barrier_entries<5:
+        while constraint_violation<=0.0 and barrier_entries<5:
             barrier_entries += 1
             #control_correction = -p*scaled_c/((p_norm)**2 + 1e-12)
             if self.action_dim == 1:

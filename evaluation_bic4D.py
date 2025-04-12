@@ -336,7 +336,7 @@ def main(cbf_type):
 
     cbf_a_params = {'kappa':1.0, 'gamma':0.97, 'Rc':5e-2, 'horizon':40}
     cbf_b_params = {'kappa':1.0, 'gamma':0.98, 'Rc':5e-2, 'horizon':40}
-    cbf_c_params = {'kappa':1.0, 'gamma':0.99, 'Rc':5e-2, 'horizon':40}
+    cbf_c_params = {'kappa':1.0, 'gamma':0.99, 'Rc':5e-2, 'horizon':45}
     cbf_d_params = {'kappa':1.0, 'gamma':0.99, 'Rc':5e-2, 'horizon':40}
 
     if cbf_type == 'A':
@@ -364,10 +364,31 @@ def main(cbf_type):
         enable_lr = False
         nrows = 2
 
-    fig, axes = plt.subplots(nrows=nrows, ncols=4, sharey='col', sharex='col', figsize=(15.0, 3.5*nrows))
+    #fig, axes = plt.subplots(nrows=nrows, ncols=4, sharey='col', sharex='col', figsize=(14.0, 3.5*nrows))
+    fig = plt.figure(figsize=(17.0, 3.7*nrows))
+    subfigs = fig.subfigures(nrows=nrows, ncols=1)
+    axes = []
+    for row_number, subfig in enumerate(subfigs):
+        kappa = kappavals[row_number]
+        if cbf_type=='D':
+            subfig.suptitle(f'CBFDDP-SM $\kappa=${kappa} with velocity constraint', fontsize=20)
+        else:
+            subfig.suptitle(f'CBFDDP-SM $\kappa=${kappa}', fontsize=20)
+
+        axs_row = subfig.subplots(nrows=1, ncols=4)
+        axes.append(axs_row)
+    axes = np.array(axes)
 
     if cbf_type == 'D':
-        fig2, axes2 = plt.subplots(nrows=nrows, ncols=4, sharey='col', sharex='col', figsize=(15.0, 3.5*nrows))
+        axes2 = []
+        fig2 = plt.figure(figsize=(15.0, 3.7*nrows))
+        subfigs2 = fig2.subfigures(nrows=nrows, ncols=1)
+
+        for row_number, subfig in enumerate(subfigs2):
+            subfig.suptitle(f'CBFDDP-SM  $\kappa=${kappa} with velocity constraint', fontsize=20)
+            axs_row = subfig.subplots(nrows=1, ncols=4)
+            axes2.append(axs_row)
+        axes2 = np.array(axes2)
     else:
         axes2 = None
 
@@ -476,10 +497,10 @@ def main(cbf_type):
             axes[kiter, 0].fill_between(np.arange(0, ddpcbf_smooth_runtime)*dyn_sys.dt, 0.0, 2.0, where=(ddpcbf_smooth_solver_types>0), color='b', alpha=0.1, label='CBFDDP-SM active')
             axes[kiter, 3].plot(ddpcbf_smooth_simulation_states[0, :], ddpcbf_smooth_simulation_states[1, :], label=label_tag, color='b', alpha=alphas[kiter], linewidth=lw)
             #axes[kiter, 0].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
-            if cbf_type == 'D':
-                axes[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}' + ' with velocity constraint ', fontsize=12)
-            else:
-                axes[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=16)
+            # if cbf_type == 'D':
+            #     axes[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}' + ' with velocity constraint ', fontsize=12)
+            # else:
+            #     axes[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=16)
             #axes[kiter, 2].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
 
             if axes2 is not None:
@@ -489,11 +510,11 @@ def main(cbf_type):
                 axes2[kiter, 0].fill_between(np.arange(0, ddpcbf_smooth_runtime)*dyn_sys.dt, 0.0, 2.0, where=(ddpcbf_smooth_solver_types>0), color='b', alpha=0.1, label='CBFDDP-SM active')
                 axes2[kiter, 3].plot(np.arange(0, ddpcbf_smooth_runtime)*dyn_sys.dt, ddpcbf_smooth_simulation_states[2, :], label=label_tag, color='b', alpha=alphas[kiter], linewidth=lw)
                 #axes[kiter, 0].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
-                if cbf_type == 'D':
-                    axes2[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}' + ' velocity constraint ', fontsize=12)
-                else:
-                    axes2[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=16)            
-                    #axes[kiter, 2].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
+                # if cbf_type == 'D':
+                #     axes2[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}' + ' velocity constraint ', fontsize=12)
+                # else:
+                #     axes2[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=16)            
+                #     #axes[kiter, 2].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
 
 
     if nrows == 1:
@@ -509,7 +530,7 @@ def main(cbf_type):
         fig2.savefig(f'./dyn_sys/cbf_2d_{cbf_type}_bic4d_filtering_smooth_max_2.png', bbox_inches="tight")
             
 if __name__ == "__main__":
-    for cbf_type in ['A', 'B', 'C', 'D']:
+    for cbf_type in ['B', 'C', 'D']:
         print(f"Starting simulation for {cbf_type}")
         main(cbf_type)
 
