@@ -298,4 +298,4 @@ for row_number in range(len(kappavals)):
 # #axes[1, 1].set_ylim([-1.0, 1.0])
 # axes[1, 1].grid()
 
-plt.savefig(f'./linear_sys/cbf_{cbf_type}_filtering_smooth_max.png', bbox_inches="tight")
+plt.savefig(f'./linear_sys/cbf_{cbf_type}_filtering_smooth_max.png', bbox_inches="tight", dpi=200)

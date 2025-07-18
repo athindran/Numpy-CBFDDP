@@ -86,13 +86,13 @@ def run_simulation(dyn_sys, cbf, cbf_type, T, method=None, Rc=None, horizon=None
     return output_dict
 
 def set_up_plots_and_axes(axes, cbf_type, nrows, cbf, T, dyn_sys):
-    ftsize=15
+    ftsize=7.0
     axes[0].set_xlabel('Time (s)', fontsize=ftsize)
     axes[0].xaxis.set_label_coords(.5, -.05)
     axes[0].plot(np.arange(0, T)*dyn_sys.dt, [[0]]*T)
     axes[0].set_ylabel('CBF Value', fontsize=ftsize)
 
-    axes[0].legend(fontsize=ftsize, loc="upper right", bbox_to_anchor=(2.5, 1.25), ncol=3)
+    axes[0].legend(fontsize=ftsize, loc="upper right", bbox_to_anchor=(3.9, 1.35), ncol=3)
     
     xticks = np.round(np.linspace(0, T*dyn_sys.dt, 2), 2)
     axes[0].set_xticks(ticks=xticks, labels=xticks)
@@ -186,7 +186,7 @@ def set_up_plots_and_axes(axes, cbf_type, nrows, cbf, T, dyn_sys):
     axes[3].yaxis.set_label_coords(-0.05, 0.5)
 
 def set_up_plots_and_axes_multiple_rows(axes, axeid, cbf_type, nrows, cbf, T, dyn_sys):
-    ftsize=15
+    ftsize=7.0
     for row_number in range(nrows):
         if row_number==nrows-1:
             axes[row_number, 0].set_xlabel('Time (s)', fontsize=ftsize)
@@ -348,15 +348,15 @@ def main(cbf_type, sys_type='DI'):
     elif cbf_type == 'B':
         cbf_params = cbf_b_params
         T = 600
-        kappavals = [4.0, 3.0, 2.0, 1.0]
+        kappavals = [3.0, 2.0, 1.0]
         enable_lr = False
-        nrows = 4
+        nrows = 3
     elif cbf_type == 'C':
         cbf_params = cbf_c_params
         T = 550
-        kappavals = [4.0, 3.0, 2.0, 1.0]
+        kappavals = [3.0, 2.0, 1.0]
         enable_lr = False
-        nrows = 4
+        nrows = 3
     elif cbf_type == 'D':
         cbf_params = cbf_d_params
         T = 550
@@ -365,15 +365,15 @@ def main(cbf_type, sys_type='DI'):
         nrows = 2
 
     #fig, axes = plt.subplots(nrows=nrows, ncols=4, sharey='col', sharex='col', figsize=(14.0, 3.5*nrows))
-    fig = plt.figure(figsize=(17.0, 3.7*nrows))
+    fig = plt.figure(figsize=(8.4, 2.1*len(kappavals)))
     subfigs = fig.subfigures(nrows=nrows, ncols=1)
     axes = []
     for row_number, subfig in enumerate(subfigs):
         kappa = kappavals[row_number]
         if cbf_type=='D':
-            subfig.suptitle(f'CBFDDP-SM $\kappa=${kappa} with velocity constraint', fontsize=20)
+            subfig.suptitle(f'CBFDDP-SM $\kappa=${kappa} with velocity constraint', fontsize=9)
         else:
-            subfig.suptitle(f'CBFDDP-SM $\kappa=${kappa}', fontsize=20)
+            subfig.suptitle(f'CBFDDP-SM $\kappa=${kappa}', fontsize=9)
 
         axs_row = subfig.subplots(nrows=1, ncols=4)
         axes.append(axs_row)
@@ -385,7 +385,7 @@ def main(cbf_type, sys_type='DI'):
         subfigs2 = fig2.subfigures(nrows=nrows, ncols=1)
 
         for row_number, subfig in enumerate(subfigs2):
-            subfig.suptitle(f'CBFDDP-SM  $\kappa=${kappa} with velocity constraint', fontsize=20)
+            subfig.suptitle(f'CBFDDP-SM  $\kappa=${kappa} with velocity constraint', fontsize=9)
             axs_row = subfig.subplots(nrows=1, ncols=4)
             axes2.append(axs_row)
         axes2 = np.array(axes2)
@@ -393,7 +393,7 @@ def main(cbf_type, sys_type='DI'):
         axes2 = None
 
     alphas = [1.0, 1.0, 1.0, 1.0, 1.0]
-    lw = 2.5
+    lw = 1.5
 
     # unconstrained_dict = run_simulation(dyn_sys, cbf, method='unfilter')
     # unconstrained_simulation_states = unconstrained_dict['simulation_states']
@@ -525,9 +525,9 @@ def main(cbf_type, sys_type='DI'):
                 continue
             set_up_plots_and_axes_multiple_rows(axes_c, axeid, cbf_type, nrows, cbf, T, dyn_sys)
 
-    fig.savefig(f'./dyn_sys/cbf_2d_DI_{cbf_type}_filtering_smooth_max.png', bbox_inches="tight")
+    fig.savefig(f'./dyn_sys/cbf_2d_DI_{cbf_type}_filtering_smooth_max.png', bbox_inches="tight", dpi=200)
     if cbf_type=='D':
-        fig2.savefig(f'./dyn_sys/cbf_2d_DI_{cbf_type}_filtering_smooth_max_2.png', bbox_inches="tight")
+        fig2.savefig(f'./dyn_sys/cbf_2d_DI_{cbf_type}_filtering_smooth_max_2.png', bbox_inches="tight", dpi=200)
             
 if __name__ == "__main__":
     for cbf_type in ['B', 'C', 'D']:
