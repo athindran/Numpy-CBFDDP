@@ -350,7 +350,7 @@ class DDPLRFilter:
                                                                                           initial_controls=boot_controls)
         boot_controls = np.array(solver_dict_plan_2['controls'])
 
-        if(solver_dict_plan_2['reachable_margin']>0.2):
+        if(solver_dict_plan_2['reachable_margin']>0.0):
             filtered_control = np.array( u_perf )
             self.reinit_controls = np.array( solver_dict_plan_2['controls'] )
         else:

@@ -35,19 +35,19 @@ if cbf_type == 'A':
     cbf_params = cbf_a_params
     T = 400
     action_perf = np.array([-1.0])
-    kappavals = [0.1, 0.5, 1.5, 3.0, 4.5]
+    kappavals = [0.5, 2.0, 4.5]
     enable_lr = True
 elif cbf_type == 'B':
     cbf_params = cbf_b_params
     T = 250
     action_perf = np.array([-1.5])
-    kappavals = [0.5, 1.0, 1.5, 2.0, 3.0]
+    kappavals = [0.25, 1.0, 2.0]
     enable_lr = False
 elif cbf_type == 'C':
     cbf_params = cbf_c_params
     T = 350
     action_perf = np.array([-1.5])
-    kappavals = [1.0, 1.5, 2.0, 3.0, 4.0]
+    kappavals = [1.0, 2.0, 3.0]
     enable_lr = False
 
 def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=None):
@@ -62,10 +62,10 @@ def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=No
 
     if method == 'ddpcbf':
         ddpcbf = DDPCBFFilter(2, 1, copy.deepcopy(cbf), copy.deepcopy(linear_sys), 
-                                horizon=horizon, Rc=Rc, gamma=gamma)
+                                horizon=horizon, Rc=Rc, gamma=gamma, scaling_factor=0.3)
     elif method == 'ddplr':
         ddplr = DDPLRFilter(2, 1, copy.deepcopy(cbf), copy.deepcopy(linear_sys), 
-                                horizon=horizon, Rc=Rc)
+                                horizon=50, Rc=1e-8)
 
     for idx in range(T):
         if method == 'unfilter':
@@ -118,7 +118,7 @@ def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=No
     return output_dict
 
 ftsize=13
-fig, axes = plt.subplots(nrows=5, ncols=3, sharey='col', sharex='col', figsize=(14.0, 19.0))
+fig, axes = plt.subplots(nrows=len(kappavals), ncols=3, sharey='col', sharex='col', figsize=(14.0, 3.8*len(kappavals)))
 alphas = [1.0, 1.0, 1.0, 1.0, 1.0]
 lw = 2.5
 
@@ -136,7 +136,7 @@ constrained_runtime = constrained_dict['runtime']
 constrained_controls = constrained_dict['controls']
 constrained_solver_types = constrained_dict['solver_types']
 
-for row_number in range(5):
+for row_number in range(len(kappavals)):
     axes[row_number, 0].plot(np.arange(0, constrained_runtime)*linear_sys.dt, constrained_cbf_states[0:constrained_runtime], label='HCBF-Filtered', color=viridis(0), linewidth=lw)
     axes[row_number, 1].plot(np.arange(0, constrained_runtime)*linear_sys.dt, constrained_controls[0:constrained_runtime], label='HCBF-Filtered', color=viridis(0), linewidth=lw)
     axes[row_number, 2].plot(constrained_simulation_states[0, :], constrained_simulation_states[1, :], label='HCBF-Filtered', color=viridis(0), linewidth=lw)
@@ -151,7 +151,7 @@ if enable_lr:
     ddplr_controls = ddplr_dict['controls']
     ddplr_solver_types = ddplr_dict['solver_types']
 
-    for row_number in range(5):
+    for row_number in range(len(kappavals)):
         axes[row_number, 0].plot(np.arange(0, ddplr_runtime)*linear_sys.dt, ddplr_cbf_states[0:ddplr_runtime], label='LRDDP-HM', color='g', linewidth=lw)
         axes[row_number, 1].plot(np.arange(0, ddplr_runtime)*linear_sys.dt, ddplr_controls[0:ddplr_runtime], label='LRDDP-HM', color='g',  alpha=0.6, linewidth=lw)
         axes[row_number, 2].plot(ddplr_simulation_states[0, :], ddplr_simulation_states[1, :], label='LRDDP-HM', color='g', linewidth=lw)
@@ -164,7 +164,7 @@ ddpcbf_runtime = ddpcbf_dict['runtime']
 ddpcbf_controls = ddpcbf_dict['controls']
 ddpcbf_solver_types = ddpcbf_dict['solver_types']
 
-for row_number in range(5):
+for row_number in range(len(kappavals)):
     axes[row_number, 0].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_cbf_states[0:ddpcbf_runtime], label='CBFDDP-HM', color='r', linewidth=lw)
     axes[row_number, 1].plot(np.arange(0, ddpcbf_runtime)*linear_sys.dt, ddpcbf_controls[0:ddpcbf_runtime], label='CBFDDP-HM', color='r', linewidth=lw)
     #axes[row_number, 1].fill_between(np.arange(0, ddpcbf_runtime)*linear_sys.dt, -1.0, 1.0, where=(ddpcbf_solver_types>0), color='r', alpha=0.2)
@@ -190,8 +190,8 @@ for kiter, kappa in enumerate(kappavals):
     axes[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=16)
     #axes[kiter, 2].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
 
-for row_number in range(5):
-    if row_number==4:
+for row_number in range(len(kappavals)):
+    if row_number==len(kappavals)-1:
         axes[row_number, 0].set_xlabel('Time (s)', fontsize=ftsize)
         axes[row_number, 0].xaxis.set_label_coords(.5, -.05)
     axes[row_number, 0].plot(np.arange(0, T)*linear_sys.dt, [[0]]*T)
@@ -214,7 +214,7 @@ for row_number in range(5):
     #axes[row_number, 0].grid()
 
     #axes[row_number, 0, 1].plot(np.arange(0, T)*linear_sys.dt, unconstrained_controls, label='UnFiltered')
-    if row_number==4:
+    if row_number==len(kappavals)-1:
         axes[row_number, 1].set_xlabel('Time (s)', fontsize=ftsize)
         axes[row_number, 1].xaxis.set_label_coords(.5, -.05)
 
@@ -247,7 +247,7 @@ for row_number in range(5):
                             edgecolor='k', fc='None', lw=0.5)
     axes[row_number, 2].add_patch(ellipse_pair)
 
-    if row_number==4:
+    if row_number==len(kappavals)-1:
         axes[row_number, 2].set_xlabel('State $x$', fontsize=ftsize)
         axes[row_number, 2].xaxis.set_label_coords(0.5, -.05)
 
