@@ -17,7 +17,7 @@ viridis = mpl.colormaps['viridis'].resampled(8)
 
 linear_sys = LinearSys()
 
-cbf_type = 'B'
+cbf_type = 'A'
 if cbf_type == 'A':
     cbf = MultiCBF()
 elif cbf_type == 'B':
@@ -117,10 +117,10 @@ def run_simulation(linear_sys, cbf, method=None, Rc=None, horizon=None, gamma=No
 
     return output_dict
 
-ftsize=13
-fig, axes = plt.subplots(nrows=len(kappavals), ncols=3, sharey='col', sharex='col', figsize=(14.0, 3.8*len(kappavals)))
+ftsize=7.0
+fig, axes = plt.subplots(nrows=len(kappavals), ncols=3, sharey='col', sharex='col', figsize=(6.6, 1.7*len(kappavals)))
 alphas = [1.0, 1.0, 1.0, 1.0, 1.0]
-lw = 2.5
+lw = 1.5
 
 # unconstrained_dict = run_simulation(linear_sys, cbf, method='unfilter')
 # unconstrained_simulation_states = unconstrained_dict['simulation_states']
@@ -187,7 +187,7 @@ for kiter, kappa in enumerate(kappavals):
     axes[kiter, 0].fill_between(np.arange(0, ddpcbf_smooth_runtime)*linear_sys.dt, 0.0, 2.0, where=(ddpcbf_smooth_solver_types>0), color='b', alpha=0.1, label='CBFDDP-SM active')
     axes[kiter, 2].plot(ddpcbf_smooth_simulation_states[0, :], ddpcbf_smooth_simulation_states[1, :], label=label_tag, color='b', alpha=alphas[kiter], linewidth=lw)
     #axes[kiter, 0].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
-    axes[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=16)
+    axes[kiter, 1].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=9)
     #axes[kiter, 2].set_title(f'CBFDDP-SM $\kappa=${kappa}', fontsize=12)
 
 for row_number in range(len(kappavals)):
@@ -198,7 +198,7 @@ for row_number in range(len(kappavals)):
     axes[row_number, 0].set_ylabel('CBF Value', fontsize=ftsize)
 
     if row_number == 0:
-        axes[row_number, 0].legend(fontsize=ftsize, loc="upper right", bbox_to_anchor=(2.5, 1.45), ncol=3)
+        axes[row_number, 0].legend(fontsize=ftsize, loc="upper right", bbox_to_anchor=(3.0, 1.5), ncol=3)
     
     xticks = np.round(np.linspace(0, T*linear_sys.dt, 2), 2)
     axes[row_number, 0].set_xticks(ticks=xticks, labels=xticks)
