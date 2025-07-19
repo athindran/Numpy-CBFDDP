@@ -86,7 +86,7 @@ def run_simulation(dyn_sys, cbf, cbf_type, T, method=None, Rc=None, horizon=None
     return output_dict
 
 def set_up_plots_and_axes(axes, cbf_type, nrows, cbf, T, dyn_sys):
-    ftsize=7.0
+    ftsize = 7.5
     axes[0].set_xlabel('Time (s)', fontsize=ftsize)
     axes[0].xaxis.set_label_coords(.5, -.05)
     axes[0].plot(np.arange(0, T)*dyn_sys.dt, [[0]]*T)
@@ -186,7 +186,7 @@ def set_up_plots_and_axes(axes, cbf_type, nrows, cbf, T, dyn_sys):
     axes[3].yaxis.set_label_coords(-0.05, 0.5)
 
 def set_up_plots_and_axes_multiple_rows(axes, axeid, cbf_type, nrows, cbf, T, dyn_sys):
-    ftsize=7.0
+    ftsize = 7.5
     for row_number in range(nrows):
         if row_number==nrows-1:
             axes[row_number, 0].set_xlabel('Time (s)', fontsize=ftsize)
@@ -198,9 +198,9 @@ def set_up_plots_and_axes_multiple_rows(axes, axeid, cbf_type, nrows, cbf, T, dy
             axes[row_number, 0].legend(fontsize=ftsize, loc="upper right", bbox_to_anchor=(2.85, 1.35), ncol=4)
         
         xticks = np.round(np.linspace(0, T*dyn_sys.dt, 2), 2)
-        axes[row_number, 0].set_xticks(ticks=xticks, labels=xticks)
+        axes[row_number, 0].set_xticks(ticks=xticks, labels=xticks, fontsize=ftsize)
         yticks = np.round(np.linspace(0.0, 1.2, 2), 2)
-        axes[row_number, 0].set_yticks(ticks=yticks, labels=yticks)
+        axes[row_number, 0].set_yticks(ticks=yticks, labels=yticks, fontsize=ftsize)
         axes[row_number, 0].tick_params(labelsize=ftsize)
         axes[row_number, 0].set_xlim([0, T*dyn_sys.dt])
         if cbf_type=='A':
@@ -229,31 +229,31 @@ def set_up_plots_and_axes_multiple_rows(axes, axeid, cbf_type, nrows, cbf, T, dy
         axes[row_number, 2].set_ylabel('Accel y', fontsize=ftsize)
         #axes[row_number, 1].legend(fontsize=ftsize)
         xticks = np.round(np.linspace(0, T*dyn_sys.dt, 2), 2)
-        axes[row_number, 2].set_xticks(ticks=xticks, labels=xticks)
+        axes[row_number, 2].set_xticks(ticks=xticks, labels=xticks, fontsize=ftsize)
         axes[row_number, 2].tick_params(labelsize=ftsize)
         axes[row_number, 2].set_xlim([0, T*dyn_sys.dt])
 
         if cbf_type=='A':
             axes[row_number, 1].set_ylim([-1.2, 1.2])
             yticks = np.round(np.linspace(-1.0, 1.0, 2), 2)
-            axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks)
+            axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks, fontsize=ftsize)
             axes[row_number, 2].set_ylim([-3.2, 3.2])
             yticks = np.round(np.linspace(-3.2, 3.2, 2), 2)
-            axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks)
+            axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks, fontsize=ftsize)
         elif cbf_type=='B' or cbf_type=='D':
             axes[row_number, 1].set_ylim([-2.2, 2.2])
             yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
-            axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks)
+            axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks, fontsize=ftsize)
             axes[row_number, 2].set_ylim([-2.2, 2.2])
             yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
-            axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks)
+            axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks, fontsize=ftsize)
         elif cbf_type=='C':
             axes[row_number, 1].set_ylim([-2.2, 2.2])
             yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
-            axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks)
+            axes[row_number, 1].set_yticks(ticks=yticks, labels=yticks, fontsize=ftsize)
             axes[row_number, 2].set_ylim([-2.2, 2.2])
             yticks = np.round(np.linspace(-2.0, 2.0, 2), 2)
-            axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks)
+            axes[row_number, 2].set_yticks(ticks=yticks, labels=yticks, fontsize=ftsize)
         
         if axeid == 0:
             ellipse = Ellipse(xy=cbf.c, width=2*cbf.beta/np.sqrt(cbf.P[0, 0]), height=2*cbf.beta/np.sqrt(cbf.P[1, 1]), 
@@ -289,8 +289,8 @@ def set_up_plots_and_axes_multiple_rows(axes, axeid, cbf_type, nrows, cbf, T, dy
                 yvals = cbf.line_constraint_x * np.ones((101, )) + 0.1*xvals
                 axes[row_number, 3].plot(xvals, yvals, 'k-')
 
-            axes[row_number, 3].set_xticks(ticks=xticks, labels=xticks)
-            axes[row_number, 3].set_yticks(ticks=yticks, labels=yticks)
+            axes[row_number, 3].set_xticks(ticks=xticks, labels=xticks, fontsize=ftsize)
+            axes[row_number, 3].set_yticks(ticks=yticks, labels=yticks, fontsize=ftsize)
             axes[row_number, 3].set_ylabel('State $y$', fontsize=ftsize)
             axes[row_number, 3].tick_params(labelsize=ftsize)
             axes[row_number, 3].yaxis.set_label_coords(-0.05, 0.5)
@@ -305,9 +305,9 @@ def set_up_plots_and_axes_multiple_rows(axes, axeid, cbf_type, nrows, cbf, T, dy
             axes[row_number, 3].plot(xvals, yvals, 'k-')
             
             xticks = np.round(np.linspace(0, T*dyn_sys.dt, 2), 2)
-            axes[row_number, 3].set_xticks(ticks=xticks, labels=xticks)
+            axes[row_number, 3].set_xticks(ticks=xticks, labels=xticks, fontsize=ftsize)
             yticks = np.round(np.linspace(0.0, 1.5, 2), 2)
-            axes[row_number, 3].set_yticks(ticks=yticks, labels=yticks)
+            axes[row_number, 3].set_yticks(ticks=yticks, labels=yticks, fontsize=ftsize)
             axes[row_number, 3].yaxis.set_label_coords(-0.05, 0.5)
 
 
@@ -365,7 +365,7 @@ def main(cbf_type, sys_type='DI'):
         nrows = 2
 
     #fig, axes = plt.subplots(nrows=nrows, ncols=4, sharey='col', sharex='col', figsize=(14.0, 3.5*nrows))
-    fig = plt.figure(figsize=(8.4, 2.1*len(kappavals)))
+    fig = plt.figure(figsize=(9.5, 2.1*len(kappavals)))
     subfigs = fig.subfigures(nrows=nrows, ncols=1)
     axes = []
     for row_number, subfig in enumerate(subfigs):
@@ -525,9 +525,9 @@ def main(cbf_type, sys_type='DI'):
                 continue
             set_up_plots_and_axes_multiple_rows(axes_c, axeid, cbf_type, nrows, cbf, T, dyn_sys)
 
-    fig.savefig(f'./dyn_sys/cbf_2d_DI_{cbf_type}_filtering_smooth_max.png', bbox_inches="tight", dpi=200)
+    fig.savefig(f'./dyn_sys/cbf_2d_DI_{cbf_type}_filtering_smooth_max.png', bbox_inches="tight", dpi=300)
     if cbf_type=='D':
-        fig2.savefig(f'./dyn_sys/cbf_2d_DI_{cbf_type}_filtering_smooth_max_2.png', bbox_inches="tight", dpi=200)
+        fig2.savefig(f'./dyn_sys/cbf_2d_DI_{cbf_type}_filtering_smooth_max_2.png', bbox_inches="tight", dpi=300)
             
 if __name__ == "__main__":
     for cbf_type in ['B', 'C', 'D']:
