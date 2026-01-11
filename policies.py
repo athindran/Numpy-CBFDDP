@@ -8,7 +8,7 @@ from cbfs_and_costs import CBF
 import cvxpy as cp
 from cvxpy import SolverError
 
-def barrier_filter_quadratic_one(P, p, c):
+def barrier_filter_quadratic_one(P, p, c, initialize, control_bias_term=np.zeros((1,))):
     def is_neg_def(x):
         # Check if a matrix is PSD
         return np.all(np.real(np.linalg.eigvals(x)) <= 0)
@@ -18,10 +18,11 @@ def barrier_filter_quadratic_one(P, p, c):
     # Check if P is PD
     if (check_nd):
         u = cp.Variable((1))
+        u.value = np.array(initialize)
         P = np.array(P)
         p = np.array(p)
 
-        prob = cp.Problem(cp.Minimize(1.0 * cp.square(u[0])),
+        prob = cp.Problem(cp.Minimize(1.0 * cp.square(u[0] + control_bias_term[0])),
                           [cp.quad_form(u, P) + p.T @ u + c >= 0])
         try:
             prob.solve(verbose=False)
@@ -31,7 +32,8 @@ def barrier_filter_quadratic_one(P, p, c):
     if (not check_nd or u[0] is None or prob.status not in [
             "optimal", "optimal_inaccurate"]):
         u = cp.Variable((1))
-        prob = cp.Problem(cp.Minimize(1.0 * cp.square(u[0])),
+        u.value = np.array(initialize)
+        prob = cp.Problem(cp.Minimize(1.0 * cp.square(u[0] + control_bias_term[0])),
                           [p @ u + c >= 0])
         try:
             prob.solve(verbose=False)
@@ -43,6 +45,44 @@ def barrier_filter_quadratic_one(P, p, c):
     return np.array([u[0].value])
 
 
+def barrier_filter_quadratic_two(P, p, c, initialize, control_bias_term=np.zeros((2,))):
+    def is_neg_def(x):
+        # Check if a matrix is PSD
+        return np.all(np.real(np.linalg.eigvals(x)) < 0)
+
+    # CVX faces numerical difficulties otherwise
+    check_nd = is_neg_def(P)
+
+    # Check if P is PD
+    if(check_nd):
+        u = cp.Variable((2))
+        u.value = np.array(initialize)
+        P = np.array(P)
+        p = np.array(p)
+
+        prob = cp.Problem(cp.Minimize(1.0 * cp.square(u[0] + control_bias_term[0]) + 1.0 * cp.square(u[1] + control_bias_term[1])),
+                          [cp.quad_form(u, P) + p.T @ u + c >= 0])
+        try:
+            prob.solve(verbose=False, warm_start=True)
+        except SolverError:
+            pass
+
+    if(not check_nd or u[0] is None or prob.status not in ["optimal", "optimal_inaccurate"]):
+        u = cp.Variable((2))
+        u.value = np.array(initialize)
+        p = np.array(p)
+        prob = cp.Problem(cp.Minimize(1.0 * cp.square(u[0] + control_bias_term[0]) + 1.0 * cp.square(u[1] + control_bias_term[1])),
+                          [p @ u + c >= 0])
+        try:
+            prob.solve(verbose=False, warm_start=True)
+        except SolverError:
+            pass
+
+    if prob.status not in ["optimal", "optimal_inaccurate"] or u[0] is None:
+        return np.array([0., 0.])
+    return np.array([u[0].value, u[1].value])
+
+
 class ReachabilityLQPolicy:
     def __init__(self, state_dim: int, action_dim:int, marginFunc: CBF, env: gym.Env, horizon = 50, Rc=1e-5):
         self.state_dim = state_dim
@@ -50,14 +90,12 @@ class ReachabilityLQPolicy:
         self.marginFunc =  marginFunc
         self.horizon = horizon
         self.env = env
-        self.env.reset()
         
         self.R = np.diag(Rc* np.ones((env.action_dim, )))
 
-        self.tol = 1e-5
-        self.eps = 1e-5
+        self.tol = 1e-6
+        self.eps = 1e-6
         self.max_iters = 30
-        self.line_search = "baseline"
     
     def initialize_trajectory(self, obs: np.ndarray, nominal_controls:np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         nominal_states = np.zeros((self.horizon + 1, self.state_dim))
@@ -104,7 +142,7 @@ class ReachabilityLQPolicy:
                 reachable_margin = failure_margin
                 critical_margin = failure_margin
 
-            reachable_margin = reachable_margin - 0.5*nominal_controls[t]@self.R@nominal_controls[t]
+            reachable_margin = reachable_margin - 0.5*nominal_controls[t] @ self.R @ nominal_controls[t]
             t = t - 1
         return reachable_margin, critical_margin, state_margins, critical_index
         
@@ -144,7 +182,7 @@ class ReachabilityLQPolicy:
                 reachable_margin = failure_margin
             else:
                 index_lists[self.horizon - 1 - t] = 0
-            reachable_margin = reachable_margin - 0.5*nominal_controls[t]@self.R@nominal_controls[t]
+            reachable_margin = reachable_margin - 0.5*nominal_controls[t] @ self.R @ nominal_controls[t]
             margins[t] = reachable_margin
             state_margins[t] = failure_margin
             t = t - 1
@@ -194,9 +232,8 @@ class ReachabilityLQPolicy:
                 V_xx[t] = Q_xx[t] + Q_ux[t].T @ K_closed_loop[t]
             t = t - 1
         
-        self.Q_u = Q_u 
         barrier_constraint_data = {"V_xx": V_xx[0], "V_x": V_x[0], "V_xx_critical": V_xx_critical, 
-                                   "V_x_critical": V_x_critical, "V_t": margins[0], "state_margins": state_margins}        
+                                   "V_x_critical": V_x_critical, "V_t": margins[0], "state_margins": state_margins, "Q_u": Q_u}        
             
         return K_closed_loop, k_open_loop, barrier_constraint_data
     
@@ -205,7 +242,9 @@ class ReachabilityLQPolicy:
         # Get initial trajectory with naive controls
         if initial_controls is None:
             initial_controls = np.zeros((self.horizon, self.action_dim))
-            initial_controls[:, 0] = 0.01
+            initial_controls[:, 0] = -1.0
+            if self.action_dim>1:
+                initial_controls[:, 1] = -0.1
         
         states, controls = self.initialize_trajectory(initial_state, initial_controls)
 
@@ -221,12 +260,13 @@ class ReachabilityLQPolicy:
         while iters<self.max_iters and not converged:
             iters = iters + 1
             # Backward pass
-            K_closed_loop, k_open_loop, _ = self.backward_pass(states, controls)
+            K_closed_loop, k_open_loop, barrier_constraint_data = self.backward_pass(states, controls)
             
             # Choose the best alpha scaling using appropriate line search methods
             alpha_chosen = self.baseline_line_search( states, controls, K_closed_loop, k_open_loop, critical_margin, J )
+            #alpha_chosen = self.armijo_line_search( states, controls, K_closed_loop, k_open_loop, critical_margin, J, barrier_constraint_data['Q_u'])
             
-            if alpha_chosen<1e-13:
+            if alpha_chosen<1e-15:
                 J_new = J
                 break
 
@@ -249,9 +289,9 @@ class ReachabilityLQPolicy:
                        "t_process": process_time, "iterations": iters}
         return controls[0], solver_dict, updated_constraints_data
 
-    def baseline_line_search( self, states, controls, K_closed_loop, k_open_loop, critical, J, beta=0.3 ):
+    def baseline_line_search( self, states, controls, K_closed_loop, k_open_loop, critical, J, beta=0.7 ):
         alpha = 1.0
-        while alpha>1e-13:
+        while alpha>1e-15:
             _, _, J_new, _, _, _ = self.forward_pass(states, controls, K_closed_loop, k_open_loop, alpha)    
 
             # Accept if there is improvement
@@ -261,13 +301,42 @@ class ReachabilityLQPolicy:
             alpha = beta*alpha
 
         return alpha
+
+    def armijo_line_search(self, states, controls, K_closed_loop, k_open_loop, critical, J, Q_u, beta=0.7):
+        # Armijo only condition - Wolfe condition is not implemented.
+        alpha = 2.0
+
+        alpha_converged = False
+
+        while not alpha_converged:
+            X, _, J_new, _, _, critical_index = self.forward_pass(
+                states, controls, K_closed_loop, k_open_loop, alpha)
+
+            # cu is zero so we propagate cx one step back and use Qu as
+            # gradient
+            grad_u = Q_u[critical_index - 1]
+            
+            delta_u = K_closed_loop[critical_index - 1] @ (
+                X[critical_index - 1] - states[critical_index - 1]) + alpha * k_open_loop[critical_index - 1]
+
+            t = 0.5 * grad_u @ delta_u.ravel()
+
+            if J_new - t * alpha >= J:
+                alpha_converged = True
+                return alpha
+            else:
+                # Reduce alpha and check for decrease condition
+                alpha = beta * alpha
+                if alpha < 1e-15:
+                    # Stop iterating here
+                    return alpha
+
     
 class DDPLRFilter:
     def __init__(self, state_dim: int, action_dim: int, marginFunc: CBF, env: gym.Env, horizon = 50, Rc=1e-5):
         self.rollout_policy_1 =  ReachabilityLQPolicy(state_dim, action_dim, marginFunc, copy.deepcopy(env), horizon, Rc)
         self.rollout_policy_2 =  ReachabilityLQPolicy(state_dim, action_dim, marginFunc, copy.deepcopy(env), horizon, Rc)
         self.reinit_controls = np.zeros((horizon, action_dim))
-        self.reinit_controls[:, 0] = 1.0
 
     def apply_filter(self, state_x, u_perf, linear_sys):
         dyn_copy = copy.deepcopy(linear_sys)
@@ -281,27 +350,28 @@ class DDPLRFilter:
                                                                                           initial_controls=boot_controls)
         boot_controls = np.array(solver_dict_plan_2['controls'])
 
-        if(solver_dict_plan_2['reachable_margin']>=0.0):
+        if(solver_dict_plan_2['reachable_margin']>0.0):
             filtered_control = np.array( u_perf )
             self.reinit_controls = np.array( solver_dict_plan_2['controls'] )
         else:
             print("Filter active")
             filtered_control = np.array(control_safe_1)
-            self.reinit_controls = np.array( solver_dict_plan_1['controls'] )
+            self.reinit_controls = np.array( boot_controls )
         
         return filtered_control, solver_dict_plan_1["reachable_margin"]
     
 class DDPCBFFilter:
-    def __init__(self, state_dim: int, action_dim: int, marginFunc: CBF, env: gym.Env, horizon = 40, Rc=1e-5):
+    def __init__(self, state_dim: int, action_dim: int, marginFunc: CBF, env: gym.Env, horizon: int, Rc: float, gamma: float, scaling_factor: float):
         self.rollout_policy_1 =  ReachabilityLQPolicy(state_dim=state_dim, action_dim=action_dim, marginFunc=marginFunc, 
                                                       env=copy.deepcopy(env), horizon=horizon, Rc=Rc)
         self.rollout_policy_2 =  ReachabilityLQPolicy(state_dim=state_dim, action_dim=action_dim, marginFunc=marginFunc, 
                                                       env=copy.deepcopy(env), horizon=horizon, Rc=Rc)
         self.reinit_controls = np.zeros((horizon, action_dim))
-        #self.reinit_controls[:, 0] = 1.0
-        self.gamma = 0.97
+        self.gamma = gamma
+        self.scaling_factor = scaling_factor
+        self.action_dim = action_dim
 
-    def apply_filter(self, state_x, u_perf, linear_sys):
+    def apply_filter(self, state_x, u_perf, linear_sys, initialize):
         dyn_copy = copy.deepcopy(linear_sys)
         control_safe_1, solver_dict_plan_1, constraints_data_plan_1 = self.rollout_policy_1.get_action( 
             np.array( state_x ) , initial_controls=self.reinit_controls)
@@ -320,20 +390,26 @@ class DDPCBFFilter:
         eps_regularization = 1e-6
 
         constraint_violation = solver_dict_plan_2['reachable_margin'] - self.gamma*solver_dict_plan_1['reachable_margin']
-        scaled_c = constraint_violation 
+        scaling_factor = self.scaling_factor
+        scaled_c = scaling_factor*constraint_violation 
         p = Bd.T @ constraints_data_plan_2['V_x']
         P = -eps_regularization * \
-                np.eye(self.rollout_policy_1.action_dim) + Bd.T @ constraints_data_plan_2['V_xx'] @ Bd
+                np.eye(self.rollout_policy_1.action_dim) + 0.5 * Bd.T @ constraints_data_plan_2['V_xx'] @ Bd
         p_norm = np.linalg.norm(p)
         barrier_entries = 0
-        while constraint_violation<=0 and barrier_entries<5:
+        control_bias_term = np.zeros((self.action_dim,))
+        while constraint_violation<=0.0 and barrier_entries<5:
             barrier_entries += 1
             #control_correction = -p*scaled_c/((p_norm)**2 + 1e-12)
-            control_correction = barrier_filter_quadratic_one(P, p, scaled_c)
+            if self.action_dim == 1:
+                control_correction = barrier_filter_quadratic_one(P, p, scaled_c, initialize, control_bias_term)
+            elif self.action_dim == 2:
+                control_correction = barrier_filter_quadratic_two(P, p, scaled_c, initialize, control_bias_term)
+
             control_cbf = control_cbf + control_correction
             control_cbf_new = control_cbf + control_correction
             control_cbf_new = control_cbf_new.ravel()
-            control_cbf_new = np.clip(control_cbf_new, -2.0, 2.0)
+            #control_cbf_new = np.clip(control_cbf_new, -2.0, 2.0)
             # Testing barrier quality
             imag_state_x, control_cbf_new = dyn_copy.step( state_x, control_cbf_new )
             _, solver_dict_plan_3, constraints_data_plan_3 = self.rollout_policy_2.get_action( np.array( imag_state_x ) , 
@@ -349,8 +425,10 @@ class DDPCBFFilter:
             p_norm = np.linalg.norm( p )
             constraint_violation = solver_dict_plan_2['reachable_margin'] - self.gamma*(solver_dict_plan_1['reachable_margin'])
             boot_controls = solver_dict_plan_2['controls']
-            scaled_c = 1.0*constraint_violation 
+            scaled_c = scaling_factor*constraint_violation 
+            control_bias_term += control_correction
         
+        #self.reinit_controls = np.array(boot_controls)
         print("Constraint violation", constraint_violation)
         #if solver_dict_plan_2["reachable_margin"]<=0.0:
         #    return control_safe_1.ravel(),solver_dict_plan_1["reachable_margin"], constraint_violation, p.copy()
