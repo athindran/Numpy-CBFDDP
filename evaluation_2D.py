@@ -525,9 +525,9 @@ def main(cbf_type, sys_type='DI'):
                 continue
             set_up_plots_and_axes_multiple_rows(axes_c, axeid, cbf_type, nrows, cbf, T, dyn_sys)
 
-    fig.savefig(f'./dyn_sys/cbf_2d_DI_{cbf_type}_filtering_smooth_max.png', bbox_inches="tight", dpi=300)
+    fig.savefig(f'./dyn_sys/cbf_2d_DI_{cbf_type}_filtering_smooth_max.pdf', bbox_inches="tight", dpi=500)
     if cbf_type=='D':
-        fig2.savefig(f'./dyn_sys/cbf_2d_DI_{cbf_type}_filtering_smooth_max_2.png', bbox_inches="tight", dpi=300)
+        fig2.savefig(f'./dyn_sys/cbf_2d_DI_{cbf_type}_filtering_smooth_max_2.pdf', bbox_inches="tight", dpi=500)
             
 if __name__ == "__main__":
     for cbf_type in ['B', 'C', 'D']:
